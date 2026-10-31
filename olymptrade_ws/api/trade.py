@@ -85,7 +85,7 @@ class TradeAPI:
             else:
                  # The response might contain error information
                  error_msg = response.get("d") if response else "No response"
-                 logger.error(f"Failed to place trade. Response: {error_msg}")
+                 logger.error("Trade request was not accepted; inspect the broker response locally if needed.")
                  # You might want to parse the error message here if the structure is known
                  return None # Indicate failure
         except Exception as e:
@@ -158,7 +158,7 @@ class TradeAPI:
                     return None
             else:
                 error_msg = response.get("d") if response else "No response"
-                logger.error(f"Failed to place order. Response: {error_msg}")
+                logger.error("Order request was not accepted; inspect the broker response locally if needed.")
                 return None
         except Exception as e:
             logger.error(f"Exception placing order: {e}")
@@ -184,10 +184,10 @@ class TradeAPI:
                      logger.info(f"Received open trades response (contains {len(open_trades)} items - format TBD).")
                      return open_trades
                  else:
-                      logger.error(f"Unexpected data format in open trades response: {open_trades}")
+                      logger.error("Open-trades response used an unexpected data format.")
                       return None
              else:
-                 logger.error(f"Did not receive expected open trades response (e:{event_code}). Got: {response}")
+                 logger.error("Did not receive the expected open-trades response event %s.", event_code)
                  return None
          except Exception as e:
              logger.error(f"Failed to get open trades: {e}")

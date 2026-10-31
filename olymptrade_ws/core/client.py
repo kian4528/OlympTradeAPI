@@ -13,22 +13,22 @@ import olymptrade_ws.olympconfig.parameters as settings
 logger = logging.getLogger(__name__)
 
 class OlympTradeClient:
-    def __init__(self, access_token: str, uri: str = parameters.DEFAULT_WEBSOCKET_URI, log_raw_messages: bool = False, account_id: int = None, account_group: str = None):
-        logger.info(f"Initializing OlympTradeClient with uri={uri}, log_raw_messages={log_raw_messages}, account_id={account_id}, account_group={account_group}")
+    def __init__(self, access_token: str, uri: str = parameters.DEFAULT_WEBSOCKET_URI, log_raw_messages: bool = False, account_id: int = None, account_group: str = None, allow_custom_endpoint: bool = False):
         self.access_token = access_token
         self.uri = uri
         self.account_id = account_id
         self.account_group = account_group
-        self.message_queue = asyncio.Queue()
-        self.connection = Connection(self.uri, self.access_token, self.message_queue, self._connection_lost_handler)
+        self.message_queue = asyncio.Queue(maxsize=1000)
+        self.connection = Connection(self.uri, self.access_token, self.message_queue, self._connection_lost_handler, allow_custom_endpoint=allow_custom_endpoint)
         
         self._response_futures: Dict[str, asyncio.Future] = {}
         self._event_callbacks: Dict[int, List[Callable[[Dict[str, Any]], Coroutine[Any, Any, None]]]] = defaultdict(list)
         self._is_running = False
         self._processing_task: Optional[asyncio.Task] = None
         self._ping_task: Optional[asyncio.Task] = None
-        self._log_raw_messages = log_raw_messages
-        self._raw_log_file = "logs/message_logbook.md" # Consider making configurable
+        self._log_raw_messages = False
+        if log_raw_messages:
+            logger.warning("log_raw_messages is ignored: raw payloads may contain private account data.")
 
         # --- API Modules ---
         self.balance = balance.BalanceAPI(self)
@@ -36,14 +36,12 @@ class OlympTradeClient:
         self.trade = trade.TradeAPI(self)
         # Add other API modules here
 
-        # --- Internal State ---
-        self._latest_balance: Dict[str, Any] = {} # Store latest balance update (e:55)
-        self.account_id = None
-        self.account_group = None # To store the account group (demo/real)
+        self._latest_balance: Dict[str, Any] = {}
+        self._session_initialized = False
 
 
     async def start(self):
-        logger.info("Starting OlympTradeClient...")
+        logger.info("Starting NIGHTSHIFT client...")
         if self._is_running:
             logger.warning("Client is already running.")
             return
@@ -53,7 +51,7 @@ class OlympTradeClient:
             self._is_running = True
             self._processing_task = asyncio.create_task(self._process_messages())
             self._ping_task = asyncio.create_task(self._ping_loop())
-            logger.info("Client started successfully.")
+            logger.info("NIGHTSHIFT client started.")
         except ConnectionError as e:
             logger.error(f"Client failed to start: {e}")
             self._is_running = False
@@ -61,12 +59,8 @@ class OlympTradeClient:
             raise
 
     async def stop(self):
-        logger.info("Stopping OlympTradeClient...")
-        if not self._is_running:
-            logger.warning("Client is not running.")
-            return
-            
-        self._is_running = False # Signal loops to stop
+        logger.info("Stopping NIGHTSHIFT client...")
+        self._is_running = False
         
         if self._ping_task and not self._ping_task.done():
             self._ping_task.cancel()
@@ -83,7 +77,7 @@ class OlympTradeClient:
              if self._processing_task: await self._processing_task
         except asyncio.CancelledError: pass
         
-        logger.info("Client stopped.")
+        logger.info("NIGHTSHIFT client stopped.")
         # Clean up any pending futures
         for fut in self._response_futures.values():
             if not fut.done():
@@ -112,12 +106,10 @@ class OlympTradeClient:
 
 
     def register_callback(self, event_code: int, callback: Callable[[Dict[str, Any]], Coroutine[Any, Any, None]]):
-        logger.info(f"Registering callback for event_code={event_code}, callback={callback}")
         """Register a callback for a specific unsolicited event code (e.g., ticks, balance updates)."""
         self._event_callbacks[event_code].append(callback)
 
     def unregister_callback(self, event_code: int, callback: Callable[[Dict[str, Any]], Coroutine[Any, Any, None]]):
-        logger.info(f"Unregistering callback for event_code={event_code}, callback={callback}")
         """Unregister a specific callback."""
         if event_code in self._event_callbacks:
             try:
@@ -154,9 +146,7 @@ class OlympTradeClient:
         request_uuid = generate_uuid() if requires_response else None
         message_str = format_message(event_code, data, request_uuid)
         
-        logger.debug(f"📤 Sending (e:{event_code}, uuid:{request_uuid}): {data}")
-        if self._log_raw_messages:
-             self._log_raw("📤 SENT", message_str)
+        logger.debug("Sending event %s (request id %s).", event_code, request_uuid or "none")
 
         future = None
         if requires_response and request_uuid:
@@ -179,7 +169,7 @@ class OlympTradeClient:
                 result = await asyncio.wait_for(future, timeout=response_timeout)
                 return result
             except asyncio.TimeoutError:
-                logger.error(f"Timeout waiting for response to request uuid {request_uuid} (e:{event_code})")
+                logger.warning("Timed out waiting for event %s (request id %s).", event_code, request_uuid)
                 # Remove future on timeout
                 if request_uuid in self._response_futures:
                      del self._response_futures[request_uuid]
@@ -195,14 +185,11 @@ class OlympTradeClient:
 
 
     async def _process_messages(self):
-        logger.info("_process_messages loop started.")
+        logger.debug("Message dispatcher started.")
         """Continuously processes messages from the connection queue."""
         while self._is_running:
             try:
                 raw_message = await self.message_queue.get()
-                if self._log_raw_messages:
-                     self._log_raw("📥 RECEIVED", raw_message)
-                     
                 parsed_messages = parse_message(raw_message)
                 if not parsed_messages:
                     continue # Skip invalid messages
@@ -214,20 +201,19 @@ class OlympTradeClient:
                  logger.info("Message processing loop cancelled.")
                  break
             except Exception as e:
-                logger.exception(f"Error processing message queue: {e}")
+                logger.error("Message processing failed (%s).", type(e).__name__)
                 # Avoid breaking the loop on unexpected errors, maybe add delay
                 await asyncio.sleep(1)
         logger.info("Message processing loop finished.")
 
     async def _dispatch_message(self, message: Dict[str, Any]):
-        logger.info(f"_dispatch_message called with message: {message}")
         """Handles a single parsed message dictionary."""
         request_uuid = message.get("uuid")
         event_code = message.get("e")
         message_type = message.get("t") # 1: Server Push, 3: Response/Push?
 
         if not event_code:
-            logger.warning(f"Received message without event code: {message}")
+            logger.warning("Received a message without an event code.")
             return
 
         # --- Handle Responses to Requests ---
@@ -237,7 +223,7 @@ class OlympTradeClient:
                 logger.debug(f"Received response for uuid {request_uuid} (e:{event_code})")
                 future.set_result(message)
             else:
-                 logger.warning(f"Received response for already completed/cancelled uuid {request_uuid}")
+                 logger.debug("Received a response for a completed request id.")
             # Even if it was a response, it might *also* be an event we have callbacks for
             # Fall through to check callbacks unless we are sure responses are never also events.
             # Based on logs (e.g., e:23 response AND e:22 push), it seems responses can be separate from pushes.
@@ -246,7 +232,7 @@ class OlympTradeClient:
 
         # --- Handle Internal State Updates ---
         if event_code == settings.E_BALANCE_UPDATE:
-            logger.debug(f"Received balance update (e:{event_code}): {message.get('d')}")
+            logger.debug("Received a balance update.")
             # Store the latest balance data (assuming 'd' contains the relevant list/dict)
             # The log shows 'd' is a list of account dicts. Find the relevant one if needed.
             self._latest_balance = message # Store the whole message for now
@@ -255,10 +241,9 @@ class OlympTradeClient:
         if event_code in self._event_callbacks:
             logger.debug(f"Dispatching event {event_code} to {len(self._event_callbacks[event_code])} callbacks.")
             # Create tasks for each callback to avoid blocking the dispatcher
-            callback_tasks = [
-                asyncio.create_task(cb(message)) 
-                for cb in self._event_callbacks[event_code]
-            ]
+            for callback in tuple(self._event_callbacks[event_code]):
+                task = asyncio.create_task(self._run_callback(callback, message))
+                task.add_done_callback(self._consume_callback_result)
             # Optionally gather results or just let them run
             # asyncio.gather(*callback_tasks) # If you need to wait/handle errors
         else:
@@ -267,8 +252,22 @@ class OlympTradeClient:
              pass
 
 
+    async def _run_callback(self, callback, message):
+        try:
+            await callback(message)
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            logger.error("Event callback failed (%s).", type(exc).__name__)
+
+    @staticmethod
+    def _consume_callback_result(task):
+        if task.cancelled():
+            return
+        task.exception()
+
     async def _ping_loop(self):
-        logger.info("_ping_loop started.")
+        logger.debug("Keep-alive loop started.")
         """Sends periodic pings (e.g., event 90) to keep the connection alive."""
         while self._is_running:
             try:
@@ -295,31 +294,17 @@ class OlympTradeClient:
                      logger.warning("Ping failed: Timeout waiting for pong.")
                      # Consider triggering connection check/reconnect here
                 except Exception as e:
-                     logger.error(f"Error during ping: {e}")
+                     logger.error("Ping request failed (%s).", type(e).__name__)
 
             except asyncio.CancelledError:
                 logger.info("Ping loop cancelled.")
                 break
             except Exception as e:
-                 logger.exception(f"Unexpected error in ping loop: {e}")
+                 logger.error("Ping loop failed (%s).", type(e).__name__)
                  await asyncio.sleep(settings.PING_INTERVAL) # Avoid tight loop on error
 
     def _log_raw(self, direction: str, message: str):
-        logger.debug(f"_log_raw called with direction={direction}, message={message}")
-        """Logs raw messages to the markdown file. Ensures logs directory exists."""
-        import os
-        log_dir = os.path.dirname(self._raw_log_file)
-        if log_dir and not os.path.exists(log_dir):
-            try:
-                os.makedirs(log_dir, exist_ok=True)
-            except Exception as e:
-                logger.error(f"Failed to create log directory: {e}")
-                return
-        try:
-            with open(self._raw_log_file, "a") as f:
-                f.write(f"```json\n{direction} ➜ {message}\n```\n")
-        except Exception as e:
-            logger.error(f"Failed to write to raw log file: {e}")
+        logger.warning("Raw message logging is disabled to protect account and session data.")
     # --- Convenience property to get last known balance ---
     @property
     def current_balance(self) -> Dict[str, Any]:
@@ -348,39 +333,37 @@ class OlympTradeClient:
         for sub in startup_subscriptions:
             await self.send_request(98, sub, requires_response=False)
         # 2. Send initial pings (e:90) - not strictly required, but mimics browser
-        import uuid
         for _ in range(2):
             await self.send_request(90, {}, requires_response=True)  # uuid auto-generated
         # 3. Request account info (demo and real)
-        self.account_id = self.account_id or None
-        self.account_group = self.account_group or None
         for group in ["demo", "real"]:
             try:
                 resp = await self.send_request(1068, [{"group": group}], requires_response=True)
-                logger.info(f"Account info response for group {group}: {resp}")
+                logger.info("Account information response received for the %s account group.", group)
                 if resp and 'd' in resp and isinstance(resp['d'], list) and resp['d']:
                     self.account_id = resp['d'][0].get('account_id')
                     self.account_group = group
-                    logger.info(f"Set account_id to {self.account_id} (group: {group})")
+                    logger.info("Account context initialized for the %s account group.", group)
                     break
             except Exception as e:
-                logger.warning(f"Failed to get account_id for group {group}: {e}")
+                logger.warning("Account lookup failed for the %s group (%s).", group, type(e).__name__)
         if not self.account_id:
-            logger.error("Could not determine account_id from account info requests.")
+            logger.error("Could not determine an account id from account information requests.")
         # 4. Request balance for the found account_id
         if self.account_id:
             try:
-                resp = await self.send_request(1043, [{"account_id": self.account_id, "group": self.account_group}], requires_response=True)
-                logger.info(f"Balance info response: {resp}")
-            except Exception as e:
-                logger.warning(f"Failed to get balance for account_id {self.account_id}: {e}")
+                await self.send_request(1043, [{"account_id": self.account_id, "group": self.account_group}], requires_response=True)
+                logger.info("Initial balance response received.")
+            except Exception as exc:
+                logger.warning("Initial balance request failed (%s).", type(exc).__name__)
+        self._session_initialized = True
 
     async def wait_for_balance(self, timeout: float = 10.0, poll_interval: float = 0.5):
         """
         Waits until a balance update is received or timeout is reached.
         Returns the balance dict if received, else None.
         """
-        logger.info(f"Waiting for balance update (timeout={timeout}s)...")
+        logger.info("Waiting for a balance update (timeout=%s seconds).", timeout)
         waited = 0.0
         while waited < timeout:
             balance = self.balance.get_last_balance()
@@ -389,5 +372,5 @@ class OlympTradeClient:
                 return balance
             await asyncio.sleep(poll_interval)
             waited += poll_interval
-        logger.warning("Timeout waiting for balance update.")
+        logger.warning("Timed out waiting for a balance update.")
         return None

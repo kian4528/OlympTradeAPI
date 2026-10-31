@@ -61,11 +61,11 @@ class BalanceAPI:
         data = [{"account_id": account_id, "group": group}]
         try:
             response = await self._client.send_request(event_code, data, requires_response=True)
-            logger.info(f"Received response for balance request (e:{event_code}): {response}")
+            logger.info("Balance request response received for event %s.", event_code)
             # Parse response - structure unknown, logs show empty 'd' for this event's response
             return response # Return raw response for inspection
         except Exception as e:
-            logger.error(f"Failed to request balance using event {event_code}: {e}")
+            logger.error("Balance request failed (%s).", type(e).__name__)
             return None
 
     async def get_balance(self, timeout: float = 10.0, poll_interval: float = 0.5) -> dict:
@@ -77,9 +77,6 @@ class BalanceAPI:
         if not getattr(self._client, '_session_initialized', False):
             await self._client.initialize_session()
             self._client._session_initialized = True
-        try:
-            await self.subscribe_balance_updates()
-        except Exception:
-            pass  # Ignore if already subscribed or fails
+        await self.subscribe_balance_updates()
         balance = await self._client.wait_for_balance(timeout=timeout, poll_interval=poll_interval)
         return balance

@@ -1,59 +1,51 @@
 import asyncio
-from olymptrade_ws import OlympTradeClient
 import logging
+import os
+from getpass import getpass
 
-ACCESS_TOKEN = ""  # Replace with your real token
+from olymptrade_ws import OlympTradeClient
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
+logger = logging.getLogger("nightshift")
+PAIR = os.getenv("NIGHTSHIFT_PAIR", "LATAM_X")
+CANDLE_SECONDS = int(os.getenv("NIGHTSHIFT_CANDLE_SECONDS", "60"))
+CANDLE_COUNT = int(os.getenv("NIGHTSHIFT_CANDLE_COUNT", "10"))
+
 
 async def main():
-    client = OlympTradeClient(
-        access_token=ACCESS_TOKEN,
-        log_raw_messages=False,
-        uri=r"wss://ws.olymptrade.com/otp?cid_ver=1&cid_app=web%40OlympTrade%402025.3.26878%4026878&cid_device=%40%40desktop&cid_os=mac_os%4010.15.7"
-    )
-    await client.start()
-    print("Connected!")
-
+    token = os.getenv("OLYMPTRADE_ACCESS_TOKEN") or getpass("OlympTrade access token (input hidden): ").strip()
+    if not token:
+        raise SystemExit("No access token supplied.")
+    client = OlympTradeClient(access_token=token)
     try:
-        # Get demo account balance
+        await client.start()
+        await client.initialize_session()
         balance = await client.balance.get_balance()
-        print(f"Current balance: {balance}")
-        demo_balance = None
-        if balance and 'd' in balance and isinstance(balance['d'], list):
-            for acc in balance['d']:
-                if acc.get('group') == 'demo':
-                    demo_balance = acc
-                    break
-        if not demo_balance:
-            print("No demo account found.")
-            return
-        print(f"Demo account balance: {demo_balance['amount']}")
-        print(f"Demo account_id: {demo_balance['account_id']}")
-
-        # Fetch last 10 candles for LATAM_X, 1-minute timeframe
-        pair = "LATAM_X"
-        candles = await client.market.get_candles(pair, size=60, count=10)
-        print(f"Last 10 candles for {pair}: {candles}")
-
-        # Simple strategy: if last candle close > open, buy 'up', else buy 'down'
-        if candles and len(candles) > 0:
-            last_candle = candles[-1]
-            direction = "up" if last_candle.get("close", 0) > last_candle.get("open", 0) else "down"
-            print(f"Strategy: Last candle close={last_candle.get('close')}, open={last_candle.get('open')}, direction={direction}")
-            print("Placing a demo order based on strategy...")
-            order_result = await client.trade.place_order(
-                pair=pair,
-                amount=1,
-                direction=direction,
-                duration=60,
-                account_id=demo_balance['account_id'],
-                group="demo"
-            )
-            print(f"Order result: {order_result}")
+        if not balance:
+            logger.warning("No balance update arrived. Check the session and API compatibility.")
         else:
-            print("No candle data available, cannot place order.")
+            accounts = balance.get("d", [])
+            demo = next((item for item in accounts if isinstance(item, dict) and item.get("group") == "demo"), None)
+            if demo:
+                logger.info("Demo account balance received. Account id is available in local session state.")
+            else:
+                logger.info("Balance received; no demo account was found in this response.")
+        candles = await client.market.get_candles(PAIR, size=CANDLE_SECONDS, count=CANDLE_COUNT)
+        if not candles:
+            logger.warning("No candle data received for %s.", PAIR)
+            return
+        latest = candles[-1]
+        open_price = latest.get("open")
+        close_price = latest.get("close")
+        if open_price is None or close_price is None:
+            logger.warning("Latest candle does not contain open and close values.")
+            return
+        direction = "up" if close_price > open_price else "down" if close_price < open_price else "flat"
+        logger.info("Pair: %s | open: %s | close: %s | candle bias: %s", PAIR, open_price, close_price, direction)
+        logger.info("Read-only mode: no orders are placed by this script.")
     finally:
         await client.stop()
-        print("Client stopped.")
+
 
 if __name__ == "__main__":
     asyncio.run(main())

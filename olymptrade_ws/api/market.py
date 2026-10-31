@@ -107,10 +107,10 @@ class MarketAPI:
                      # TODO: Validate candle format [{p, t, open, low, high, close}, ...]
                      return candles_data
                  else:
-                     logger.error(f"Unexpected data format in candle response: {candles_data}")
+                     logger.error("Candle response used an unexpected data format.")
                      return None
             else:
-                 logger.error(f"Did not receive expected candle response (e:{event_code_resp}). Got: {response}")
+                 logger.error("Did not receive the expected candle response event %s.", event_code_resp)
                  return None
 
         except Exception as e:
@@ -130,10 +130,10 @@ class MarketAPI:
                     logger.info(f"Received profitability for {len(profit_data)} assets.")
                     return profit_data
                 else:
-                     logger.error(f"Unexpected data format in profitability response: {profit_data}")
+                     logger.error("Profitability response used an unexpected data format.")
                      return None
             else:
-                logger.error(f"Did not receive expected profitability response (e:{event_code}). Got: {response}")
+                logger.error("Did not receive the expected profitability response event %s.", event_code)
                 return None
         except Exception as e:
             logger.error(f"Failed to get profitability: {e}")

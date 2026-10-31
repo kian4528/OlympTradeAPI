@@ -1,37 +1,67 @@
-# OlympTradeAPI
+# NIGHTSHIFT | OlympTrade API Workbench
 
-Python WebSocket API client for OlympTrade — build, backtest and run automated trading bots.
+A private, terminal-first workspace for experimenting with the existing OlympTrade WebSocket client. The original `olymptrade_ws` package remains the foundation; the local tooling is tuned for safer configuration, quiet logs, and read-only examples by default.
 
-📚 **[Read the documentation](https://chipadevteam.github.io/OlympTradeAPI/)** · 👉 **[Join us on Discord](https://discord.gg/p7YyFqSmAz)**
+## Design rules
 
----
+- Credentials stay in your local environment or hidden terminal input.
+- Raw WebSocket payloads are not written to disk.
+- The default connection must use encrypted WebSockets and the official `ws.olymptrade.com` host.
+- Example scripts do not place orders.
+- API event mappings are reverse-engineered and can change without notice.
 
-## ⚡ Build bots faster with Chipa Editor
+## Termux setup
 
-[**Chipa Editor**](https://chipaeditor.com/?utm_source=olymptradeapi&utm_medium=readme&utm_campaign=olymptrade_api_docs&utm_term=support&utm_content=header) autocompletes this entire API — every method, parameter and payload — with inline docs as you type. Free to start.
+```sh
+pkg update
+pkg install python
+python -m venv .venv
+. .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
 
-👉 **[Get Chipa Editor free](https://chipaeditor.com/?utm_source=olymptradeapi&utm_medium=readme&utm_campaign=olymptrade_api_docs&utm_term=support&utm_content=header)**
+## Configure and run
 
-## 🤖 Don't want to build it yourself?
+The safest approach is to enter the token only when prompted. To use an environment variable for the current shell session:
 
-| What you want | Where to go |
-|---|---|
-| **Trade bots that already work** — no code, no setup | [Chipa Exchange →](https://exchange.chipatrade.com/trade/BTC) |
-| **A bot built to your strategy** by our team | [Custom Bot Development →](https://chipatrade.com/services/bot-development) |
-| **Write it yourself** | Start with the [docs](https://chipadevteam.github.io/OlympTradeAPI/getting-started.html) |
+```sh
+export OLYMPTRADE_ACCESS_TOKEN='paste-your-token-here'
+python -m olymptrade_ws.main
+```
 
-## 📈 You'll need an OlympTrade account
+Avoid putting a real token in shell history, screenshots, shared files, or source code. Clear the variable after use with `unset OLYMPTRADE_ACCESS_TOKEN`.
 
-This library connects to OlympTrade's WebSocket API, so a live account is required to run anything here. Payouts go up to 93%.
+Run the read-only candle example with:
 
-👉 **[Create your OlympTrade account](https://trkmad.com/2590624)**
+```sh
+python simple_bot.py
+```
 
-> ⚠️ Trading carries inherent risk and you can lose your capital. Never trade money you cannot afford to lose. The link above is an affiliate link — it costs you nothing extra and helps keep this library maintained.
+The example inspects the latest candle and reports a simple directional bias. It does not submit a trade.
 
-## 💬 Community
+## Tests
 
-👉 [Join us on Discord](https://discord.gg/p7YyFqSmAz)
+```sh
+python -m pytest -q
+```
 
-## 📄 License
+Tests are local and do not connect to OlympTrade or require a token.
 
-MIT — see [LICENSE](LICENSE).
+## Privacy and network behavior
+
+The Python client connects to `wss://ws.olymptrade.com/otp` by default and sends the supplied token as the `access_token` cookie to that host. It cannot authenticate without sending the token to the broker. Custom hosts are rejected unless the caller explicitly opts in with `allow_custom_endpoint=True`; do not enable that option for an endpoint you do not control and trust. The documentation website may load third-party assets if opened in a browser; the Python runtime does not need those website assets.
+
+No source review can guarantee that a third-party service or a reverse-engineered private API is safe or stable. Use a demo account first, inspect future changes, and never provide this client with credentials you cannot afford to revoke.
+
+## Project map
+
+- `olymptrade_ws/core/` — WebSocket transport, protocol encoding, and message dispatch
+- `olymptrade_ws/api/` — balance, market, and trade API wrappers
+- `olymptrade_ws/main.py` — safe interactive console entry point
+- `simple_bot.py` — read-only candle example
+- `NOTE.md` — local operating principles and project identity
+
+## Trading risk
+
+This project is not affiliated with or endorsed by OlympTrade. It uses an undocumented/reverse-engineered protocol that may break at any time. No strategy or example guarantees a profit. Real-money orders should only be added deliberately and tested in demo mode first.
