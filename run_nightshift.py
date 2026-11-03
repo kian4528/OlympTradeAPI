@@ -1,161 +1,244 @@
 import asyncio
+import json
 import logging
 import os
 import sys
-import time
+from pathlib import Path
 from getpass import getpass
 
 from olymptrade_ws.core.client import OlympTradeClient
 from olymptrade_ws.strategy.fct10s import FCT10sStrategy, StrategyConfig
+from olymptrade_ws.olympconfig import parameters
 
 logging.disable(logging.CRITICAL)
 
 PAIR = "EURUSD_OTC"
-STAKE = 1.00
+STAKE = 1
 EXPIRY_SECONDS = 5
+CATEGORY = "digital"
+STATS_FILE = Path("nightshift_stats.json")
 
 
 class Dashboard:
     def __init__(self):
-        self.fields = {}
-        self.started = False
+        self.rows = {}
 
-    def update(self, key, value, row):
-        value = str(value)
-        if self.fields.get(key) == value:
+    def update(self, row, value):
+        if self.rows.get(row) == value:
             return
-        self.fields[key] = value
+        self.rows[row] = value
         sys.stdout.write(f"\033[{row};1H\033[2K{value}")
         sys.stdout.flush()
 
     def start(self):
         sys.stdout.write("\033[2J\033[H\033[?25l")
         sys.stdout.flush()
-        self.started = True
-        self.update("title", "NIGHTSHIFT | FCT-5S", 1)
-        self.update("line", "=" * 52, 2)
-        self.update("pair", f"Instrument       {PAIR}", 4)
-        self.update("stake", f"Stake            ${STAKE:.2f}", 5)
-        self.update("expiry", f"Expiry           {EXPIRY_SECONDS}s", 6)
-        self.update("mode", "Execution        DEMO VERIFICATION REQUIRED", 7)
-        self.update("orders", "Order submission LOCKED", 8)
-        self.update("separator", "-" * 52, 10)
-        self.update("price", "Latest price     --", 11)
-        self.update("ticks", "Ticks            0", 12)
-        self.update("signal", "Latest signal    --", 13)
-        self.update("position", "Position         NONE", 14)
-        self.update("record", "Results          0W / 0L / 0D", 15)
-        self.update("status", "Status           Connecting", 17)
-        self.update("footer", "Press Ctrl+C to stop", 19)
+        self.update(1, "NIGHTSHIFT | AUTOMATED DEMO")
+        self.update(2, "━" * 48)
+        self.update(4, f"PAIR       {PAIR}")
+        self.update(5, f"ACCOUNT    DEMO | STAKE {STAKE} USD")
+        self.update(6, f"EXPIRY     {EXPIRY_SECONDS} SECONDS")
+        self.update(8, "SESSION")
+        self.update(9, "Price      --")
+        self.update(10, "Ticks      0")
+        self.update(11, "Signal     Waiting for setup")
+        self.update(12, "Trade      IDLE")
+        self.update(14, "PERFORMANCE")
+        self.update(15, "Trades     0")
+        self.update(16, "Wins       0     Losses 0     Draws 0")
+        self.update(17, "Win rate   0.0%")
+        self.update(18, "Net P/L    +0.00 USD")
+        self.update(20, "Last close NONE")
+        self.update(22, "Ctrl+C to stop")
 
     def close(self):
-        if self.started:
-            sys.stdout.write("\033[?25h\n")
-            sys.stdout.flush()
+        sys.stdout.write("\033[?25h\n")
+        sys.stdout.flush()
 
 
 class Runner:
     def __init__(self):
+        self.client = None
+        self.dashboard = Dashboard()
         self.strategy = FCT10sStrategy(
             StrategyConfig(pair=PAIR, expiry_seconds=EXPIRY_SECONDS)
         )
-        self.client = None
-        self.dashboard = Dashboard()
-        self.latest_price = None
-        self.open_trade = None
         self.ticks = 0
-        self.wins = 0
-        self.losses = 0
-        self.draws = 0
-        self.last_signal = "--"
+        self.order_lock = asyncio.Lock()
+        self.active_order = False
+        self.uncertain_order = False
+        self.order_task = None
+        self.stats = self.load_stats()
 
-    async def on_tick(self, message):
+    def load_stats(self):
+        default = {
+            "trades": 0,
+            "wins": 0,
+            "losses": 0,
+            "draws": 0,
+            "net": 0.0,
+            "closed_ids": [],
+            "last_close": "NONE",
+        }
+        try:
+            if STATS_FILE.exists():
+                data = json.loads(STATS_FILE.read_text())
+                for key in default:
+                    if key in data:
+                        default[key] = data[key]
+        except (OSError, ValueError, TypeError):
+            pass
+        return default
+
+    def save_stats(self):
+        temp = STATS_FILE.with_suffix(".tmp")
+        temp.write_text(json.dumps(self.stats, indent=2))
+        temp.replace(STATS_FILE)
+
+    def refresh_stats(self):
+        s = self.stats
+        rate = (s["wins"] / s["trades"] * 100) if s["trades"] else 0
+        self.dashboard.update(15, f"Trades     {s['trades']}")
+        self.dashboard.update(
+            16,
+            f"Wins       {s['wins']}     Losses {s['losses']}     Draws {s['draws']}",
+        )
+        self.dashboard.update(17, f"Win rate   {rate:.1f}%")
+        self.dashboard.update(18, f"Net P/L    {s['net']:+.2f} USD")
+        self.dashboard.update(20, f"Last close {s['last_close']}")
+
+    @staticmethod
+    def event_data(message):
         data = message.get("d", [])
         if isinstance(data, dict):
-            data = [data]
-        if not isinstance(data, list):
-            return
+            return [data]
+        if isinstance(data, list):
+            return [item for item in data if isinstance(item, dict)]
+        return []
 
-        for item in data:
-            if not isinstance(item, dict) or item.get("p") != PAIR:
+    async def on_interim(self, message):
+        for item in self.event_data(message):
+            status = item.get("status", "in progress")
+            self.dashboard.update(12, f"Trade      {str(status).upper()}")
+
+    async def on_accepted(self, message):
+        self.active_order = True
+        self.dashboard.update(12, "Trade      ACCEPTED | OPEN")
+
+    async def on_closed(self, message):
+        for item in self.event_data(message):
+            trade_id = item.get("id")
+            if trade_id is not None and str(trade_id) in self.stats["closed_ids"]:
+                continue
+
+            status = str(item.get("status", "")).lower()
+            try:
+                change = float(item.get("balance_change", 0) or 0)
+            except (TypeError, ValueError):
+                change = 0.0
+
+            if status not in ("win", "loss", "draw"):
+                if change > 0:
+                    status = "win"
+                elif change < 0:
+                    status = "loss"
+                else:
+                    status = "draw"
+
+            self.stats["trades"] += 1
+            self.stats["net"] += change
+
+            if status == "win":
+                self.stats["wins"] += 1
+            elif status == "loss":
+                self.stats["losses"] += 1
+            else:
+                self.stats["draws"] += 1
+
+            if trade_id is not None:
+                self.stats["closed_ids"].append(str(trade_id))
+
+            self.stats["last_close"] = (
+                f"{status.upper()} | {change:+.2f} USD"
+            )
+            self.save_stats()
+            self.refresh_stats()
+
+        self.active_order = False
+        self.uncertain_order = False
+        self.dashboard.update(12, "Trade      CLOSED | READY")
+
+    async def submit_signal(self, signal):
+        async with self.order_lock:
+            if self.active_order or self.uncertain_order:
+                return
+
+            if self.client.account_group != "demo":
+                self.uncertain_order = True
+                self.dashboard.update(12, "Trade      HALTED | DEMO CHECK FAILED")
+                return
+
+            self.active_order = True
+            self.dashboard.update(
+                11,
+                f"Signal     {signal.direction.upper()} @ {signal.entry_price:.5f}",
+            )
+            self.dashboard.update(12, "Trade      SUBMITTING")
+
+            try:
+                result = await self.client.trade.place_order(
+                    pair=PAIR,
+                    amount=STAKE,
+                    direction=signal.direction,
+                    duration=EXPIRY_SECONDS,
+                    account_id=self.client.account_id,
+                    group="demo",
+                    category=CATEGORY,
+                    timestamp=signal.timestamp * 1000,
+                )
+            except Exception as exc:
+                self.uncertain_order = True
+                self.dashboard.update(
+                    12, f"Trade      UNCERTAIN | {type(exc).__name__}"
+                )
+                self.dashboard.update(22, "HALTED: check demo account before restart")
+                return
+
+            if result is None:
+                self.uncertain_order = True
+                self.dashboard.update(12, "Trade      UNCERTAIN | NO CONFIRMATION")
+                self.dashboard.update(22, "HALTED: check demo account before restart")
+                return
+
+            self.dashboard.update(12, "Trade      SENT | WAITING FOR BROKER")
+
+    async def on_tick(self, message):
+        for item in self.event_data(message):
+            if item.get("p") != PAIR:
                 continue
             try:
                 timestamp = float(item["t"])
                 price = float(item["q"])
             except (KeyError, TypeError, ValueError):
                 continue
-
-            if timestamp > 100_000_000_000:
-                timestamp /= 1000.0
-            if price <= 0:
+            if timestamp <= 0 or price <= 0:
                 continue
 
             self.ticks += 1
-            self.latest_price = price
-            self.dashboard.update(
-                "price", f"Latest price     {price:.5f}", 11
-            )
-            self.dashboard.update(
-                "ticks", f"Ticks            {self.ticks}", 12
-            )
+            self.dashboard.update(9, f"Price      {price:.5f}")
+            self.dashboard.update(10, f"Ticks      {self.ticks}")
+
+            if self.active_order or self.uncertain_order:
+                continue
 
             signal = self.strategy.on_tick(timestamp, price)
-            if signal is not None and self.open_trade is None:
-                self.open_trade = {
-                    "direction": signal.direction,
-                    "entry": price,
-                    "opened": time.monotonic(),
-                    "expires": time.monotonic() + EXPIRY_SECONDS,
-                }
-                self.last_signal = (
-                    f"{signal.direction.upper()} | {signal.reason}"
+            if signal is None:
+                continue
+
+            if self.order_task is None or self.order_task.done():
+                self.order_task = asyncio.create_task(
+                    self.submit_signal(signal)
                 )
-                self.dashboard.update(
-                    "signal", f"Latest signal    {self.last_signal[:100]}", 13
-                )
-                self.dashboard.update(
-                    "position",
-                    f"Position         {signal.direction.upper()} @ {price:.5f}",
-                    14,
-                )
-
-            await self.check_expiry()
-
-    async def check_expiry(self):
-        trade = self.open_trade
-        if trade is None or time.monotonic() < trade["expires"]:
-            return
-        if self.latest_price is None:
-            return
-
-        exit_price = self.latest_price
-        if trade["direction"] == "up":
-            result = (
-                "WIN" if exit_price > trade["entry"]
-                else "LOSS" if exit_price < trade["entry"]
-                else "DRAW"
-            )
-        else:
-            result = (
-                "WIN" if exit_price < trade["entry"]
-                else "LOSS" if exit_price > trade["entry"]
-                else "DRAW"
-            )
-
-        if result == "WIN":
-            self.wins += 1
-        elif result == "LOSS":
-            self.losses += 1
-        else:
-            self.draws += 1
-
-        self.dashboard.update(
-            "record",
-            f"Results          {self.wins}W / {self.losses}L / {self.draws}D",
-            15,
-        )
-        self.dashboard.update("position", f"Position         {result}", 14)
-        self.open_trade = None
 
     async def run(self):
         token = os.environ.get("OLYMPTRADE_ACCESS_TOKEN")
@@ -164,31 +247,47 @@ class Runner:
         if not token:
             raise SystemExit("An access token is required.")
 
+        self.dashboard.start()
+        self.refresh_stats()
         self.client = OlympTradeClient(access_token=token)
         started = False
-        registered = False
-        self.dashboard.start()
+
+        callbacks = [
+            (parameters.E_TICK_UPDATE, self.on_tick),
+            (parameters.E_TRADE_UPDATE_INTERIM, self.on_interim),
+            (parameters.E_TRADE_ACCEPTED, self.on_accepted),
+            (parameters.E_TRADE_CLOSED, self.on_closed),
+        ]
 
         try:
             await self.client.start()
             started = True
             await self.client.initialize_session()
-            self.client.register_callback(1, self.on_tick)
-            registered = True
-            await self.client.market.subscribe_ticks(PAIR)
 
+            if self.client.account_group != "demo" or not self.client.account_id:
+                raise RuntimeError("Verified demo account required.")
+
+            for event_code, callback in callbacks:
+                self.client.register_callback(event_code, callback)
+
+            await self.client.market.subscribe_ticks(PAIR)
             self.dashboard.update(
-                "status", f"Status           Live feed active | {PAIR}", 17
+                22, f"DEMO ACTIVE | ACCOUNT {self.client.account_id} | Ctrl+C to stop"
             )
+
             while True:
-                await self.check_expiry()
-                await asyncio.sleep(0.1)
+                await asyncio.sleep(0.5)
 
         finally:
+            if self.order_task and not self.order_task.done():
+                self.order_task.cancel()
+                await asyncio.gather(self.order_task, return_exceptions=True)
+
             if started:
-                if registered:
-                    self.client.unregister_callback(1, self.on_tick)
+                for event_code, callback in callbacks:
+                    self.client.unregister_callback(event_code, callback)
                 await self.client.stop()
+
             self.dashboard.close()
 
 

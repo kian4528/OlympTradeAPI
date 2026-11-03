@@ -69,7 +69,10 @@ class TradeAPI:
         }]
 
         response = await self._client.send_request(
-            23, payload, requires_response=True
+            23,
+            payload,
+            requires_response=True,
+            timeout=5.0,
         )
 
         if not isinstance(response, dict) or response.get("e") != 23:

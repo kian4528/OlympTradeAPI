@@ -225,18 +225,6 @@ class OlympTradeClient:
 
         data = message.get("d")
         data_count = len(data) if isinstance(data, (list, dict)) else None
-        print(
-            "Protocol diagnostic:",
-            {
-                "event": event_code,
-                "message_type": message_type,
-                "has_uuid": bool(request_uuid),
-                "matched_request": matched,
-                "data_type": type(data).__name__,
-                "data_count": data_count,
-            },
-        )
-
         if matched:
             future = self._response_futures.pop(request_uuid)
             if not future.done():
@@ -247,7 +235,20 @@ class OlympTradeClient:
                 try:
                     result = callback(message)
                     if asyncio.iscoroutine(result):
-                        await result
+                        task = asyncio.create_task(result)
+
+                        def report_callback_error(done_task, code=event_code):
+                            if done_task.cancelled():
+                                return
+                            error = done_task.exception()
+                            if error is not None:
+                                logger.error(
+                                    "Event callback failed for event %s (%s).",
+                                    code,
+                                    type(error).__name__,
+                                )
+
+                        task.add_done_callback(report_callback_error)
                 except Exception as exc:
                     logger.error(
                         "Event callback failed for event %s (%s).",
@@ -302,84 +303,36 @@ class OlympTradeClient:
         ]
 
         for subscription in startup_subscriptions:
-            await self.send_request(98, subscription, requires_response=False)
+            await self.send_request(
+                settings.E_SUBSCRIBE_EVENTS,
+                subscription,
+                requires_response=False,
+            )
 
         self.balance._subscribed = True
 
-        for _ in range(2):
-            await self.send_request(settings.E_PING, {}, requires_response=True)
-
         await self.wait_for_balance(timeout=10.0)
 
-        balance_message = self._latest_balance
-        records = balance_message.get("d", []) if isinstance(balance_message, dict) else []
-        if isinstance(records, dict):
-            records = [records]
-        if not isinstance(records, list):
-            records = []
-
-        demo_ids = []
-        if isinstance(records, list):
-            for record in records:
-                if not isinstance(record, dict):
-                    continue
-                account_id = record.get("account_id")
-                if (
-                    record.get("group") == "demo"
-                    and isinstance(account_id, int)
-                    and not isinstance(account_id, bool)
-                    and account_id > 0
-                ):
-                    demo_ids.append(account_id)
-
-        if len(set(demo_ids)) != 1:
-            raise RuntimeError("A unique demo account could not be verified.")
-
-        demo_id = demo_ids[0]
-
-        try:
-            balance_response = await self.send_request(
-                settings.E_GET_BALANCE_REQUEST_2,
-                [{"account_id": demo_id, "group": "demo"}],
-                requires_response=True,
-                timeout=8.0,
+        demo_account = self.balance.get_demo_account()
+        if not demo_account:
+            raise RuntimeError(
+                "Could not identify exactly one demo account. "
+                "Order submission remains disabled."
             )
-        except (asyncio.TimeoutError, ConnectionError) as exc:
-            raise RuntimeError("Demo account activation could not be verified.") from exc
 
-        if not isinstance(balance_response, dict):
-            raise RuntimeError("Demo account activation returned an invalid response.")
+        demo_id = demo_account.get("account_id")
+        if (
+            not isinstance(demo_id, int)
+            or isinstance(demo_id, bool)
+            or demo_id <= 0
+        ):
+            raise RuntimeError("Invalid demo account ID.")
 
-        if balance_response.get("e") != settings.E_GET_BALANCE_REQUEST_2:
-            raise RuntimeError("Unexpected response to demo account activation.")
+        self.account_id = demo_id
+        self.account_group = "demo"
+        self._session_initialized = True
 
-        response_data = balance_response.get("d")
-        if isinstance(response_data, dict):
-            safe_data = {
-                key: value
-                for key, value in response_data.items()
-                if key in ("account_id", "group", "balance", "currency")
-            }
-        elif isinstance(response_data, list):
-            safe_data = [
-                {
-                    key: value
-                    for key, value in item.items()
-                    if key in ("account_id", "group", "balance", "currency")
-                }
-                for item in response_data
-                if isinstance(item, dict)
-            ]
-        else:
-            safe_data = type(response_data).__name__
-
-        print("Demo activation response:", safe_data)
-        raise RuntimeError(
-            "Demo account ID was discovered, but active broker-side "
-            "demo routing remains unverified. Order submission stays disabled."
-        )
-
-        logger.info("Demo account context selected: %s", demo_id)
+        logger.info("Demo account selected: %s", demo_id)
 
     async def wait_for_balance(self, timeout: float = 10.0, poll_interval: float = 0.5):
         """
