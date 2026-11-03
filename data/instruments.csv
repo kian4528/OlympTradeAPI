@@ -1,0 +1,92 @@
+id,title,group,aliases,precision,locked,locked_trading,locked_buy,locked_sell,time_open,time_close
+YM,Dow Jones,index,"[""Index""]",2,True,True,False,False,1793574060,1793391300
+AUDUSD,AUD/USD,currency,,5,True,True,False,False,1793570400,1793394000
+EURCHF,EUR/CHF,currency,,5,True,True,False,False,1793570400,1793394000
+SBUX,Starbucks,stock,,2,True,True,False,False,1793629800,1793390400
+GS,Goldman Sachs,stock,,2,True,True,False,False,1793629800,1793390400
+IBM,IBM,stock,,2,True,True,False,False,1793629800,1793390400
+NZDJPY,NZD/JPY,currency,,3,True,True,False,False,1793570400,1793394000
+MS,Morgan Stanley,stock,,2,True,True,False,False,1793629800,1793390400
+IBIT,iShares Bitcoin Trust,etf,,2,True,True,False,False,1793629800,1793390400
+EBAY,eBay,stock,,2,True,True,False,False,1793629800,1793390400
+DIS,Disney,stock,,2,True,True,False,False,1793629800,1793390400
+CADCHF,CAD/CHF,currency,,5,True,True,False,False,1793570400,1793394000
+USDCHF,USD/CHF,currency,,5,True,True,False,False,1793570400,1793394000
+FDAX,DAX,index,"[""Index""]",2,True,True,False,False,1793581200,1793397300
+PEPSICO,PepsiCo Inc.,stock,,2,True,True,False,False,1793629800,1793390400
+MA,MasterCard,stock,,2,True,True,False,False,1793629800,1793390400
+IYR,ETF U.S. Real Estate,etf,,2,True,True,False,False,1793629800,1793390400
+CAT,Caterpillar,stock,,2,True,True,False,False,1793629800,1793390400
+JPM,JPMorgan Chase,stock,,2,True,True,False,False,1793629800,1793390400
+MSFT,Microsoft,stock,,2,True,True,False,False,1793629800,1793390400
+NZDCAD,NZD/CAD,currency,,5,True,True,False,False,1793570400,1793394000
+USDCAD,USD/CAD,currency,,5,True,True,False,False,1793570400,1793394000
+GBPAUD,GBP/AUD,currency,,5,True,True,False,False,1793570400,1793394000
+NQ,NASDAQ,index,"[""Index""]",2,True,True,False,False,1793574060,1793391300
+V,Visa,stock,,2,True,True,False,False,1793629800,1793390400
+Z,FTSE 100,index,"[""Index""]",2,True,True,False,False,1793581200,1793397300
+TSLA,Tesla,stock,,2,True,True,False,False,1793629800,1793390400
+XAGUSD,Silver,metal,,3,True,True,False,False,1793574000,1793393700
+ES,S&P 500,index,"[""Index"", ""SP 500""]",2,True,True,False,False,1793574060,1793391300
+AMD,AMD,stock,,2,True,True,False,False,1793629800,1793390400
+SPY,SPDR S&P 500 ETF Trust,etf,,2,True,True,False,False,1793629800,1793390400
+WTI,WTI Crude Oil,goods,,3,True,True,False,False,1793574000,1793394000
+FB,Meta,stock,"[""Facebook""]",2,True,True,False,False,1793629800,1793390400
+FESX,EURO STOXX 50,index,"[""Index""]",2,True,True,False,False,1793581200,1793397300
+BIDU,Baidu,stock,,2,True,True,False,False,1793629800,1793390400
+CHFJPY,CHF/JPY,currency,,3,True,True,False,False,1793570400,1793394000
+BRZU,ETF MSCI Brazil 2х,etf,,2,True,True,False,False,1793629800,1793390400
+JNJ,Johnson & Johnson,stock,,2,True,True,False,False,1793629800,1793390400
+EURNZD,EUR/NZD,currency,,5,True,True,False,False,1793570400,1793394000
+BABA,Alibaba,stock,,2,True,True,False,False,1793629800,1793390400
+BA,Boeing,stock,,2,True,True,False,False,1793629800,1793390400
+PG,Procter & Gamble,stock,,2,True,True,False,False,1793629800,1793390400
+NZDUSD,NZD/USD,currency,,5,True,True,False,False,1793570400,1793394000
+CRM,Salesforce,stock,,2,True,True,False,False,1924953120,1793279520
+FCE,CAC 40,index,"[""Index""]",2,True,True,False,False,1793581200,1793397300
+MMM,3M Company,stock,,2,True,True,False,False,1793629800,1793390400
+NKE,Nike,stock,,2,True,True,False,False,1793629800,1793390400
+AUDNZD,AUD/NZD,currency,,5,True,True,False,False,1793570400,1793394000
+BOOM_150_X,Boom STM 150,crashboom,,2,False,False,False,False,1794175200,1794171600
+AMZN,Amazon,stock,,2,True,True,False,False,1793629800,1793390400
+XAUUSD,Gold,metal,,3,True,True,False,False,1793574000,1793393700
+EUROPE_X,Europe Composite Index,composite,,2,False,False,False,False,1794175200,1794171600
+GBPUSD,GBP/USD,currency,,5,True,True,False,False,1793570400,1793394000
+TSM,Taiwan Semiconductor,stock,,2,True,True,False,False,1793629800,1793390400
+CMDTY_X,Compound Index,composite,,2,False,False,False,False,1794175200,1794171600
+WMT,Walmart,stock,,2,True,True,False,False,1793629800,1793390400
+MCD,McDonald's,stock,,2,True,True,False,False,1793629800,1793390400
+CADJPY,CAD/JPY,currency,,3,True,True,False,False,1793570400,1793394000
+_BRN,BRENT,goods,,3,True,True,False,False,1793581200,1793394000
+BOOM_300_X,Boom STM 300,crashboom,,2,False,False,False,False,1794175200,1794171600
+CSCO,Cisco,stock,,2,True,True,False,False,1793629800,1793390400
+GBPNZD,GBP/NZD,currency,,5,True,True,False,False,1793570400,1793394000
+KO,Coca-Cola,stock,,2,True,True,False,False,1793629800,1793390400
+EURAUD,EUR/AUD,currency,,5,True,True,False,False,1793570400,1793394000
+CVX,Chevron,stock,,2,True,True,False,False,1793629800,1793390400
+GOOGL,Google,stock,"[""Alphabet Inc""]",2,True,True,False,False,1793629800,1793390400
+AAPL,Apple,stock,,2,True,True,False,False,1793629800,1793390400
+HOMEDEPOT,Home Depot,stock,"[""HD""]",2,True,True,False,False,1793629800,1793390400
+QID,ETF NASDAQ Reversal 2х,etf,,2,True,True,False,False,1793629800,1793390400
+NFLX,Netflix,stock,,2,True,True,False,False,1793629800,1793390400
+GBPCHF,GBP/CHF,currency,,5,True,True,False,False,1793570400,1793394000
+AUDJPY,AUD/JPY,currency,,3,True,True,False,False,1793570400,1793394000
+XOM,Exxon Mobil,stock,,2,True,True,False,False,1793629800,1793390400
+PYPL,PayPal,stock,,2,True,True,False,False,1793629800,1793390400
+AUDCHF,AUD/CHF,currency,,5,True,True,False,False,1793570400,1793394000
+EURJPY,EUR/JPY,currency,,3,True,True,False,False,1793570400,1793394000
+EURCAD,EUR/CAD,currency,,5,True,True,False,False,1793570400,1793394000
+NOVN,Novartis,stock,"[""NVS""]",2,True,True,False,False,1793629800,1793390400
+GBPCAD,GBP/CAD,currency,,5,True,True,False,False,1793570400,1793394000
+GBPJPY,GBP/JPY,currency,,3,True,True,False,False,1793570400,1793394000
+CRASH_150_X,Crash STM 150,crashboom,,2,False,False,False,False,1794175200,1794171600
+AUDCAD,AUD/CAD,currency,,5,True,True,False,False,1793570400,1793394000
+EURUSD,EUR/USD,currency,,5,True,True,False,False,1793570400,1793394000
+USDJPY,USD/JPY,currency,,3,True,True,False,False,1793570400,1793394000
+ASIA_X,Asia Composite Index,composite,,2,False,False,False,False,1794175200,1794171600
+CRASH_300_X,Crash STM 300,crashboom,,2,False,False,False,False,1794175200,1794171600
+NZDCHF,NZD/CHF,currency,,5,True,True,False,False,1793570400,1793394000
+ORCL,Oracle,stock,,2,True,True,False,False,1793629800,1793390400
+NVDA,Nvidia,stock,,2,True,True,False,False,1793629800,1793390400
+EURGBP,EUR/GBP,currency,,5,True,True,False,False,1793570400,1793394000
+UVXY,"ETF S&P500 Volatility 1,5x",etf,,2,True,True,False,False,1793629800,1793390400

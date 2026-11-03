@@ -1,0 +1,194 @@
+import asyncio
+import logging
+import os
+from decimal import Decimal, InvalidOperation
+from getpass import getpass
+
+from olymptrade_ws.core.client import OlympTradeClient
+
+# Keep third-party and internal diagnostic logs off the dashboard.
+logging.disable(logging.CRITICAL)
+
+APP_NAME = "N I G H T S H I F T"
+
+
+def _normalise(key):
+    return "".join(ch for ch in str(key).lower() if ch.isalnum())
+
+
+def _find(record, names):
+    wanted = {_normalise(name) for name in names}
+    for key, value in record.items():
+        if _normalise(key) in wanted and value not in (None, ""):
+            return value
+    return None
+
+
+def _money(value):
+    if isinstance(value, bool) or value is None:
+        return None
+    try:
+        number = Decimal(str(value))
+        if not number.is_finite():
+            return None
+        return f"{number:,.2f}"
+    except (InvalidOperation, ValueError, TypeError):
+        return None
+
+
+def _display_value(value):
+    if isinstance(value, bool):
+        return "Yes" if value else "No"
+    if isinstance(value, (str, int, float)):
+        return str(value)
+    return None
+
+
+def display_dashboard(balance):
+    accounts = balance.get("d", []) if isinstance(balance, dict) else []
+    if isinstance(accounts, dict):
+        accounts = [accounts]
+    if not isinstance(accounts, list):
+        accounts = []
+
+    print()
+    print("╔══════════════════════════════════════════════╗")
+    print("║             N I G H T S H I F T              ║")
+    print("║              ACCOUNT OVERVIEW                ║")
+    print("╚══════════════════════════════════════════════╝")
+    print("  ● CONNECTED     │     READ-ONLY MODE")
+    print("  ────────────────────────────────────────────")
+
+    totals = {}
+    shown = 0
+
+    for index, account in enumerate(accounts, 1):
+        if not isinstance(account, dict):
+            continue
+
+        shown += 1
+        group = _find(account, ("group", "account_type", "type", "name", "title"))
+        currency = _find(account, ("currency", "currency_code", "currencyCode", "cur"))
+        amount = _find(account, ("balance", "available_balance", "availableBalance"))
+
+        label = str(group) if group is not None else f"Account {index}"
+        currency_text = str(currency) if currency is not None else ""
+
+        print(f"\n  {index:02d}  {label.upper()}")
+        print("  " + "─" * 42)
+
+        formatted = _money(amount)
+        if formatted is not None:
+            suffix = f" {currency_text}" if currency_text else ""
+            print(f"      BALANCE       {formatted}{suffix}")
+            if currency_text:
+                totals.setdefault(currency_text, []).append(Decimal(str(amount)))
+        else:
+            print("      BALANCE       Not identified in account data")
+
+        for title, aliases in (
+            ("EQUITY", ("equity",)),
+            ("BONUS", ("bonus",)),
+            ("PROFIT", ("profit",)),
+        ):
+            value = _find(account, aliases)
+            rendered = _money(value)
+            if rendered is not None:
+                print(f"      {title:<14} {rendered}{(' ' + currency_text) if currency_text else ''}")
+
+        if group is None and currency is None and formatted is None:
+            safe_keys = [
+                str(key) for key in account
+                if not any(word in _normalise(key) for word in (
+                    "id", "token", "cookie", "auth", "password", "secret"
+                ))
+            ]
+            if safe_keys:
+                print("      Available fields: " + ", ".join(safe_keys[:12]))
+
+    if not shown:
+        print("\n  No account records were available.")
+
+    # Only aggregate balances when every displayed amount uses the same known currency.
+    if len(totals) == 1:
+        currency, values = next(iter(totals.items()))
+        if len(values) == shown:
+            total = sum(values, Decimal("0"))
+            print("\n  " + "─" * 42)
+            print(f"  TOTAL BALANCE   {total:,.2f} {currency}")
+
+    print("\n  " + "─" * 42)
+    print("  Press Ctrl+C to disconnect.")
+    print()
+
+
+
+def inspect_balance_schema(balance):
+    """Print account field names and types only; never print field values."""
+    def inspect(value, indent=6):
+        prefix = " " * indent
+        if isinstance(value, dict):
+            for key, item in value.items():
+                label = str(key)
+                safe = not any(word in label.lower() for word in (
+                    "token", "cookie", "auth", "password", "secret",
+                    "email", "phone", "address"
+                ))
+                if not safe:
+                    continue
+                print(f"{prefix}{label}: {type(item).__name__}")
+                if isinstance(item, dict):
+                    inspect(item, indent + 2)
+                elif isinstance(item, list) and item:
+                    print(f"{prefix}  [list length: {len(item)}]")
+                    inspect(item[0], indent + 4)
+        elif isinstance(value, list):
+            print(f"{prefix}[list length: {len(value)}]")
+            if value:
+                inspect(value[0], indent + 2)
+
+    records = balance.get("d", []) if isinstance(balance, dict) else []
+    print("\\n  SAFE ACCOUNT DATA SCHEMA")
+    inspect(records)
+
+
+async def run_client():
+    token = os.getenv("OLYMPTRADE_ACCESS_TOKEN")
+    if not token:
+        token = getpass("OlympTrade access token (input hidden): ").strip()
+    if not token:
+        raise SystemExit("An access token is required.")
+
+    client = OlympTradeClient(access_token=token)
+    started = False
+
+    try:
+        print("\n  NIGHTSHIFT  •  Starting secure read-only session...")
+        await client.start()
+        started = True
+        await client.initialize_session()
+
+        balance = await client.balance.get_balance()
+        if balance:
+            inspect_balance_schema(balance)
+        else:
+            print("\n  No balance update received. Check session validity and try again.")
+            return
+
+        await asyncio.Event().wait()
+
+    except KeyboardInterrupt:
+        pass
+    except Exception as exc:
+        print(f"\n  Session error: {type(exc).__name__}")
+    finally:
+        if started:
+            await client.stop()
+        print("\n  NIGHTSHIFT disconnected. Goodbye.\n")
+
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(run_client())
+    except KeyboardInterrupt:
+        print("\n  NIGHTSHIFT closed.\n")

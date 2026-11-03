@@ -1,190 +1,323 @@
-# api/market.py
+import asyncio
 import logging
+import math
 import time
-from typing import TYPE_CHECKING, Dict, Any, Optional, List, Union
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
-from olymptrade_ws.core.protocol import get_current_timestamp_ms
+from olymptrade_ws.olympconfig import parameters
 
 if TYPE_CHECKING:
     from olymptrade_ws.core.client import OlympTradeClient
 
 logger = logging.getLogger(__name__)
 
+
 class MarketAPI:
-    def __init__(self, client: 'OlympTradeClient'):
+    def __init__(self, client: "OlympTradeClient"):
         self._client = client
 
     async def subscribe_ticks(self, pair: str) -> None:
-        """Subscribes to live price ticks (Event 1) for a given asset pair."""
-        logger.info(f"Subscribing to ticks for {pair}...")
-        # Logs show events 12 and 280 are sent when subscribing to a pair
-        try:
-            # Event 12
-            await self._client.send_request(12, [{"pair": pair}], requires_response=True)
-             # Event 280
-            await self._client.send_request(280, [{"pair": pair}], requires_response=True)
-            logger.info(f"Successfully sent tick subscription requests for {pair}.")
-        except Exception as e:
-            logger.error(f"Failed to subscribe to ticks for {pair}: {e}")
-            raise
+        """Subscribe to the observed tick streams for an instrument."""
+        if not isinstance(pair, str) or not pair.strip():
+            raise ValueError("pair must be a non-empty string")
+
+        await self._client.send_request(
+            parameters.E_SUBSCRIBE_TICKS,
+            [{"pair": pair}],
+            requires_response=True,
+        )
+        await self._client.send_request(
+            parameters.E_SUBSCRIBE_TICKS_RELATED,
+            [{"pair": pair}],
+            requires_response=True,
+        )
 
     async def unsubscribe_ticks(self, pair: str) -> None:
-        """Unsubscribes from live price ticks for a given asset pair."""
-        logger.info(f"Unsubscribing from ticks for {pair}...")
-         # Logs show events 13 and 281 are sent when unsubscribing
-        try:
-             # Event 13
-            await self._client.send_request(13, [{"pair": pair}], requires_response=True)
-            # Event 281
-            await self._client.send_request(281, [{"pair": pair}], requires_response=True)
-            logger.info(f"Successfully sent tick unsubscription requests for {pair}.")
-        except Exception as e:
-            logger.error(f"Failed to unsubscribe from ticks for {pair}: {e}")
-            raise
-            
-    async def get_candles(self, pair: str, size: int, count: int, end_time: Optional[Union[datetime, int]] = None) -> Optional[List[Dict[str, Any]]]:
-        """
-        Requests historical candle data.
+        """Unsubscribe from the observed tick streams for an instrument."""
+        if not isinstance(pair, str) or not pair.strip():
+            raise ValueError("pair must be a non-empty string")
 
-        Args:
-            pair: Asset pair (e.g., "EURUSD", "ASIA_X").
-            size: Candle size in seconds (e.g., 5, 60, 300).
-            count: Number of candles to retrieve before end_time.
-            end_time: Timestamp (int seconds or datetime object) for the *end* of the period.
-                      Defaults to the current time.
+        await self._client.send_request(
+            parameters.E_UNSUBSCRIBE_TICKS,
+            [{"pair": pair}],
+            requires_response=True,
+        )
+        await self._client.send_request(
+            parameters.E_UNSUBSCRIBE_TICKS_RELATED,
+            [{"pair": pair}],
+            requires_response=True,
+        )
 
-        Returns:
-            A list of candle dictionaries (format needs verification from e:1003 response) or None on error.
-            
-        NOTE: The exact mapping of 'count' to the API request ('solid'?) needs confirmation.
-              The response format (event 1003) structure needs verification.
-        """
+    @staticmethod
+    def _normalize_end_time(
+        end_time: Optional[Union[datetime, int]]
+    ) -> int:
         if end_time is None:
-            to_ts = int(time.time())
-        elif isinstance(end_time, datetime):
-            # Ensure datetime is timezone-aware (assume UTC if naive)
+            return int(time.time())
+
+        if isinstance(end_time, bool):
+            raise ValueError("end_time must be a datetime or Unix timestamp")
+
+        if isinstance(end_time, datetime):
             if end_time.tzinfo is None:
-                 end_time = end_time.replace(tzinfo=timezone.utc)
-            to_ts = int(end_time.timestamp())
-        else:
-            to_ts = int(end_time)
+                end_time = end_time.replace(tzinfo=timezone.utc)
+            return int(end_time.timestamp())
 
-        logger.info(f"Requesting {count} candles for {pair} (size: {size}s) ending around {datetime.fromtimestamp(to_ts, tz=timezone.utc)}")
-        
-        # Event 10 seems to request candles, Event 1003 is the response in logs
-        event_code_req = 10
-        event_code_resp = 1003 # Expected response event code
-        
-        # The log shows 'solid: true'. This *might* relate to fetching historical batch?
-        # The 'count' parameter isn't directly visible in the logged request payload.
-        # The API might implicitly return a certain number based on 'to' and 'size',
-        # or 'count' needs to be mapped differently (e.g., calculate 'from' timestamp).
-        # Let's assume for now the API returns a batch ending at 'to'. We might need
-        # multiple requests or a different parameter to get exactly 'count'.
-        # For now, we request data ending at 'to_ts'.
-        
-        data = [{"pair": pair, "size": size, "to": to_ts, "solid": True}] # 'solid' is a guess
-        
-        # Also saw event 282 sent along with 10 in logs, purpose unclear. Send it too?
-        event_code_req_alt = 282
-        data_alt = [{"pair": pair, "size": size, "to": to_ts, "solid": True}]
+        if isinstance(end_time, int):
+            return end_time
+
+        raise ValueError("end_time must be a datetime or Unix timestamp")
+
+    @staticmethod
+    def _parse_candles(
+        response: Dict[str, Any],
+        expected_pair: str,
+        expected_size: int,
+    ) -> List[Dict[str, Any]]:
+        data = response.get("d")
+
+        if isinstance(data, dict):
+            data = [data]
+
+        if not isinstance(data, list):
+            raise ValueError("Historical response has no candle data list")
+
+        matching = [
+            item for item in data
+            if isinstance(item, dict)
+            and item.get("p") == expected_pair
+            and item.get("tf") == expected_size
+        ]
+
+        if not matching:
+            raise ValueError(
+                "Historical response did not contain the requested "
+                "pair and timeframe"
+            )
+
+        raw_candles = matching[0].get("candles")
+        if not isinstance(raw_candles, list):
+            raise ValueError("Historical response candles field is invalid")
+
+        parsed = []
+        seen_timestamps = set()
+
+        for item in raw_candles:
+            if not isinstance(item, dict):
+                continue
+
+            try:
+                timestamp_value = item["t"]
+                timestamp = int(timestamp_value)
+                open_price = float(item["open"])
+                high_price = float(item["high"])
+                low_price = float(item["low"])
+                close_price = float(item["close"])
+            except (KeyError, TypeError, ValueError, OverflowError):
+                continue
+
+            values = (
+                open_price,
+                high_price,
+                low_price,
+                close_price,
+            )
+
+            if not all(math.isfinite(value) for value in values):
+                continue
+
+            if timestamp <= 0 or timestamp in seen_timestamps:
+                continue
+
+            if low_price <= 0 or min(values) <= 0:
+                continue
+
+            if high_price < max(open_price, close_price, low_price):
+                continue
+
+            if low_price > min(open_price, close_price, high_price):
+                continue
+
+            seen_timestamps.add(timestamp)
+            parsed.append({
+                "t": timestamp,
+                "open": open_price,
+                "high": high_price,
+                "low": low_price,
+                "close": close_price,
+            })
+
+        parsed.sort(key=lambda candle: candle["t"])
+        return parsed
+
+    async def get_candles(
+        self,
+        pair: str,
+        size: int,
+        count: int,
+        end_time: Optional[Union[datetime, int]] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        Retrieve historical candles using the observed event-10 protocol.
+
+        The server response is an event-10 message whose data contains:
+        [{"p": pair, "tf": timeframe, "candles": [...]}].
+
+        Returned candles are validated, deduplicated, and sorted oldest-first.
+        """
+        if not isinstance(pair, str) or not pair.strip():
+            raise ValueError("pair must be a non-empty string")
+
+        if (
+            not isinstance(size, int)
+            or isinstance(size, bool)
+            or size <= 0
+        ):
+            raise ValueError("size must be a positive integer")
+
+        if (
+            not isinstance(count, int)
+            or isinstance(count, bool)
+            or not 1 <= count <= 10000
+        ):
+            raise ValueError("count must be between 1 and 10000")
+
+        end_timestamp = self._normalize_end_time(end_time)
+        loop = asyncio.get_running_loop()
+        response_future = loop.create_future()
+
+        async def history_callback(message: Dict[str, Any]) -> None:
+            if message.get("e") != parameters.E_GET_CANDLES_REQUEST:
+                return
+
+            try:
+                candles = self._parse_candles(message, pair, size)
+            except ValueError as exc:
+                if not response_future.done():
+                    response_future.set_exception(exc)
+                return
+
+            if not response_future.done():
+                response_future.set_result(candles)
+
+        event_code = parameters.E_GET_CANDLES_REQUEST
+        self._client.register_callback(event_code, history_callback)
+
+        request = [{
+            "pair": pair,
+            "size": size,
+            "to": end_timestamp,
+            "limit": count,
+        }]
 
         try:
-            # Send the primary request (e:10) and expect a response (e:1003)
-            # NOTE: The log for e:1003 doesn't show a UUID matching the e:10 request.
-            # This suggests e:1003 might be an unsolicited push triggered by e:10,
-            # or the UUID matching was missed in logging. Assuming direct response for now.
-            response = await self._client.send_request(event_code_req, data, requires_response=True)
-            
-            # Optionally send the secondary request (e:282) if needed - requires_response=False?
-            # await self._client.send_request(event_code_req_alt, data_alt, requires_response=False) 
+            # The observed server response is an event-10 message without
+            # a demonstrated UUID correlation. Receive it via callback.
+            await self._client.send_request(
+                event_code,
+                request,
+                requires_response=False,
+            )
 
-            if response and response.get("e") == event_code_resp:
-                 candles_data = response.get("d")
-                 if isinstance(candles_data, list):
-                     logger.info(f"Received {len(candles_data)} candles for {pair}.")
-                     # TODO: Validate candle format [{p, t, open, low, high, close}, ...]
-                     return candles_data
-                 else:
-                     logger.error("Candle response used an unexpected data format.")
-                     return None
-            else:
-                 logger.error("Did not receive the expected candle response event %s.", event_code_resp)
-                 return None
+            timeout = parameters.DEFAULT_RESPONSE_TIMEOUT
+            candles = await asyncio.wait_for(
+                response_future,
+                timeout=timeout,
+            )
 
-        except Exception as e:
-            logger.error(f"Failed to get candles for {pair}: {e}")
-            return None
+            if not candles:
+                logger.warning(
+                    "No valid historical candles returned for %s (%ss).",
+                    pair,
+                    size,
+                )
+                return []
 
-    async def get_profitability(self, account_id: int) -> Optional[List[Dict[str, Any]]]:
-        """Requests current profitability for assets (Event 182)."""
-        logger.info(f"Requesting asset profitability for account {account_id}...")
-        event_code = 182
-        data = [{"account_id": account_id}]
+            logger.info(
+                "Loaded %d historical candles for %s (%ss).",
+                len(candles),
+                pair,
+                size,
+            )
+            return candles
+
+        except asyncio.TimeoutError:
+            logger.warning(
+                "Timed out waiting for historical candles for %s.",
+                pair,
+            )
+            raise
+
+        finally:
+            self._client.unregister_callback(
+                event_code,
+                history_callback,
+            )
+            if not response_future.done():
+                response_future.cancel()
+
+    async def get_profitability(
+        self, account_id: int
+    ) -> Optional[List[Dict[str, Any]]]:
+        """Disabled until the event-182 request/response mapping is verified."""
+        logger.warning(
+            "Profitability lookup is disabled: event 182 is not verified."
+        )
+        return None
+
+    async def select_asset(
+        self, pair: str, category: str = "digital"
+    ) -> Optional[Dict[str, Any]]:
+        """Select an asset and wait for its event-80 strike information."""
+        if not isinstance(pair, str) or not pair.strip():
+            raise ValueError("pair must be a non-empty string")
+        if not isinstance(category, str) or not category.strip():
+            raise ValueError("category must be a non-empty string")
+
+        strike_event = parameters.E_ASSET_STRIKES
+        select_event = parameters.E_SELECT_ASSET
+        loop = asyncio.get_running_loop()
+        strike_future = loop.create_future()
+
+        async def strike_callback(message: Dict[str, Any]) -> None:
+            data = message.get("d", [])
+            if isinstance(data, dict):
+                data = [data]
+            if not isinstance(data, list):
+                return
+
+            for item in data:
+                if not isinstance(item, dict):
+                    continue
+                if item.get("p") == pair and not strike_future.done():
+                    strike_future.set_result(item)
+                    return
+
+        self._client.register_callback(strike_event, strike_callback)
         try:
-            response = await self._client.send_request(event_code, data, requires_response=True)
-            if response and response.get("e") == event_code:
-                profit_data = response.get("d")
-                if isinstance(profit_data, list):
-                    logger.info(f"Received profitability for {len(profit_data)} assets.")
-                    return profit_data
-                else:
-                     logger.error("Profitability response used an unexpected data format.")
-                     return None
-            else:
-                logger.error("Did not receive the expected profitability response event %s.", event_code)
-                return None
-        except Exception as e:
-            logger.error(f"Failed to get profitability: {e}")
+            await self._client.send_request(
+                select_event,
+                [{"cat": category, "pair": pair}],
+                requires_response=True,
+            )
+            return await asyncio.wait_for(
+                strike_future,
+                timeout=parameters.DEFAULT_RESPONSE_TIMEOUT,
+            )
+        except asyncio.TimeoutError:
+            logger.warning(
+                "Timed out waiting for strike information for %s.", pair
+            )
             return None
-
-    async def select_asset(self, pair: str, category: str = "digital") -> Optional[Dict[str, Any]]:
-         """Selects an asset, potentially retrieving strike/payout info (Events 95, 80)."""
-         logger.info(f"Selecting asset {pair} (category: {category})...")
-         event_code_select = 95
-         event_code_strikes = 80 # Often follows e:95 in logs
-         data = [{"cat": category, "pair": pair}]
-         try:
-             # Send e:95 request
-             response_select = await self._client.send_request(event_code_select, data, requires_response=True)
-             if not (response_select and response_select.get("e") == event_code_select):
-                 logger.error(f"Failed to get confirmation for asset selection (e:{event_code_select}).")
-                 # Decide if we should proceed to wait for strikes anyway
-             
-             logger.info(f"Asset {pair} selected. Waiting for strike/payout info (e:{event_code_strikes})...")
-             # Event 80 seems to be pushed after 95, not a direct response.
-             # We need a way to wait for a specific *unsolicited* event.
-             # Option 1: Register a temporary callback for e:80 with a filter for the pair.
-             # Option 2: Have a general e:80 callback update internal state, then retrieve it.
-             
-             # Using Option 1 (temporary callback) for demonstration:
-             future = asyncio.get_running_loop().create_future()
-
-             async def temp_strike_callback(message: Dict[str, Any]):
-                 strike_data_list = message.get("d", [])
-                 if isinstance(strike_data_list, list):
-                     for item in strike_data_list:
-                         # Check if this strike data is for the requested pair
-                         if isinstance(item, dict) and item.get("p") == pair:
-                              if not future.done():
-                                   future.set_result(item) # Return the specific strike data for the pair
-                              break # Found our pair
-
-             self._client.register_callback(event_code_strikes, temp_strike_callback)
-             
-             try:
-                 # Wait for the callback to set the future's result
-                 strike_info = await asyncio.wait_for(future, timeout=settings.DEFAULT_RESPONSE_TIMEOUT)
-                 logger.info(f"Received strike info for {pair}: {strike_info}")
-                 return strike_info
-             except asyncio.TimeoutError:
-                  logger.error(f"Timeout waiting for strike info (e:{event_code_strikes}) for {pair}.")
-                  return None
-             finally:
-                  # Always unregister the temporary callback
-                  self._client.unregister_callback(event_code_strikes, temp_strike_callback)
-
-         except Exception as e:
-             logger.error(f"Failed during asset selection/strike retrieval for {pair}: {e}")
-             return None
+        except Exception as exc:
+            logger.warning(
+                "Asset selection failed (%s).", type(exc).__name__
+            )
+            return None
+        finally:
+            self._client.unregister_callback(
+                strike_event, strike_callback
+            )
+            if not strike_future.done():
+                strike_future.cancel()

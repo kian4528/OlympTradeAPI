@@ -1,0 +1,383 @@
+# core/client.py
+import asyncio
+import logging
+from typing import Any, Dict, Optional, Callable, Awaitable, List, Coroutine
+from collections import defaultdict
+# core/client.py - Line 6 (Corrected)
+from olymptrade_ws.olympconfig import parameters
+from .connection import Connection
+from .protocol import format_message, parse_message, generate_uuid
+from olymptrade_ws.api import balance, market, trade # Import API modules
+import olymptrade_ws.olympconfig.parameters as settings
+
+logger = logging.getLogger(__name__)
+
+class OlympTradeClient:
+    def __init__(self, access_token: str, uri: str = parameters.DEFAULT_WEBSOCKET_URI, log_raw_messages: bool = False, account_id: int = None, account_group: str = None, allow_custom_endpoint: bool = False):
+        self.access_token = access_token
+        self.uri = uri
+        self.account_id = account_id
+        self.account_group = account_group
+        self.message_queue = asyncio.Queue(maxsize=1000)
+        self.connection = Connection(self.uri, self.access_token, self.message_queue, self._connection_lost_handler, allow_custom_endpoint=allow_custom_endpoint)
+        
+        self._response_futures: Dict[str, asyncio.Future] = {}
+        self._event_callbacks: Dict[int, List[Callable[[Dict[str, Any]], Coroutine[Any, Any, None]]]] = defaultdict(list)
+        self._is_running = False
+        self._processing_task: Optional[asyncio.Task] = None
+        self._ping_task: Optional[asyncio.Task] = None
+        self._log_raw_messages = False
+        if log_raw_messages:
+            logger.warning("log_raw_messages is ignored: raw payloads may contain private account data.")
+
+        # --- API Modules ---
+        self.balance = balance.BalanceAPI(self)
+        self.market = market.MarketAPI(self)
+        self.trade = trade.TradeAPI(self)
+        # Add other API modules here
+
+        self._latest_balance: Dict[str, Any] = {}
+        self._session_initialized = False
+
+
+    async def start(self):
+        logger.info("Starting NIGHTSHIFT client...")
+        if self._is_running:
+            logger.warning("Client is already running.")
+            return
+        
+        try:
+            await self.connection.connect()
+            self._is_running = True
+            self._processing_task = asyncio.create_task(self._process_messages())
+            self._ping_task = asyncio.create_task(self._ping_loop())
+            logger.info("NIGHTSHIFT client started.")
+        except ConnectionError as e:
+            logger.error(f"Client failed to start: {e}")
+            self._is_running = False
+            # Optionally re-raise or handle startup failure
+            raise
+
+    async def stop(self):
+        """Stop the client and clean up tasks and pending requests."""
+        logger.info("Stopping NIGHTSHIFT client...")
+        self._is_running = False
+
+        tasks = [self._ping_task, self._processing_task]
+        for task in tasks:
+            if task is not None and not task.done():
+                task.cancel()
+
+        await self.connection.disconnect()
+
+        active_tasks = [
+            task for task in tasks
+            if task is not None and task is not asyncio.current_task()
+        ]
+        if active_tasks:
+            await asyncio.gather(*active_tasks, return_exceptions=True)
+
+        self._ping_task = None
+        self._processing_task = None
+
+        for future in self._response_futures.values():
+            if not future.done():
+                future.cancel()
+        self._response_futures.clear()
+
+        self._session_initialized = False
+        self.balance._subscribed = False
+
+        logger.info("NIGHTSHIFT client stopped.")
+
+    async def _connection_lost_handler(self):
+        """Callback executed by Connection when the websocket closes unexpectedly."""
+        logger.warning("Connection lost. Attempting to clean up and stop client.")
+        # Signal loops to stop if they haven't already noticed
+        self._is_running = False 
+        if self._ping_task and not self._ping_task.done():
+            self._ping_task.cancel()
+        if self._processing_task and not self._processing_task.done():
+            self._processing_task.cancel()
+            
+        # Clean up pending futures with an error
+        for fut in self._response_futures.values():
+            if not fut.done():
+                fut.set_exception(ConnectionError("WebSocket connection lost"))
+        self._response_futures.clear()
+        
+        # TODO: Implement reconnection logic here if desired
+        logger.info("Client state reset due to connection loss. Manual restart required (or implement auto-reconnect).")
+
+
+    def register_callback(self, event_code: int, callback: Callable[[Dict[str, Any]], Coroutine[Any, Any, None]]):
+        """Register a callback for a specific unsolicited event code (e.g., ticks, balance updates)."""
+        self._event_callbacks[event_code].append(callback)
+
+    def unregister_callback(self, event_code: int, callback: Callable[[Dict[str, Any]], Coroutine[Any, Any, None]]):
+        """Unregister a specific callback."""
+        if event_code in self._event_callbacks:
+            try:
+                self._event_callbacks[event_code].remove(callback)
+                if not self._event_callbacks[event_code]: # Remove key if list is empty
+                    del self._event_callbacks[event_code]
+            except ValueError:
+                logger.warning(f"Callback not found for event code {event_code}")
+
+
+    async def send_request(
+        self,
+        event_code: int,
+        data: Any,
+        requires_response: bool = True,
+        timeout: Optional[float] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """Send a protocol request and optionally await its UUID response."""
+        if not self.connection.is_connected:
+            raise ConnectionError("Not connected")
+
+        request_uuid = generate_uuid() if requires_response else None
+        message_str = format_message(event_code, data, request_uuid)
+
+        logger.debug(
+            "Sending event %s (request id %s).",
+            event_code,
+            request_uuid or "none",
+        )
+
+        future = None
+        if request_uuid:
+            future = asyncio.get_running_loop().create_future()
+            self._response_futures[request_uuid] = future
+
+        try:
+            await self.connection.send(message_str)
+        except Exception:
+            if request_uuid:
+                self._response_futures.pop(request_uuid, None)
+            if future is not None and not future.done():
+                future.cancel()
+            raise
+
+        if future is None:
+            return None
+
+        try:
+            response_timeout = (
+                timeout
+                if timeout is not None
+                else parameters.DEFAULT_RESPONSE_TIMEOUT
+            )
+            return await asyncio.wait_for(future, timeout=response_timeout)
+        except asyncio.TimeoutError:
+            logger.warning(
+                "Timed out waiting for event %s (request id %s).",
+                event_code,
+                request_uuid,
+            )
+            self._response_futures.pop(request_uuid, None)
+            raise
+        except asyncio.CancelledError:
+            self._response_futures.pop(request_uuid, None)
+            raise
+
+    async def _process_messages(self):
+        logger.debug("Message dispatcher started.")
+        """Continuously processes messages from the connection queue."""
+        while self._is_running:
+            try:
+                raw_message = await self.message_queue.get()
+                parsed_messages = parse_message(raw_message)
+                if not parsed_messages:
+                    continue # Skip invalid messages
+
+                for message in parsed_messages:
+                    await self._dispatch_message(message)
+
+            except asyncio.CancelledError:
+                 logger.info("Message processing loop cancelled.")
+                 break
+            except Exception as e:
+                logger.error("Message processing failed (%s).", type(e).__name__)
+                # Avoid breaking the loop on unexpected errors, maybe add delay
+                await asyncio.sleep(1)
+        logger.info("Message processing loop finished.")
+
+    async def _dispatch_message(self, message: Dict[str, Any]):
+        """Dispatch a message with privacy-safe response diagnostics."""
+        request_uuid = message.get("uuid")
+        event_code = message.get("e")
+        message_type = message.get("t")
+
+        if not event_code:
+            logger.warning("Received a message without an event code.")
+            return
+
+        matched = bool(
+            request_uuid and request_uuid in self._response_futures
+        )
+
+        logger.debug(
+            "Incoming protocol message: event=%s type=%s "
+            "has_uuid=%s matched_pending_request=%s.",
+            event_code,
+            message_type,
+            bool(request_uuid),
+            matched,
+        )
+
+        if matched:
+            future = self._response_futures.pop(request_uuid)
+            if not future.done():
+                future.set_result(message)
+            else:
+                logger.debug("Matched response belongs to a completed request.")
+            return
+
+        if request_uuid:
+            logger.debug(
+                "Incoming message UUID did not match a pending request."
+            )
+
+        if event_code == settings.E_BALANCE_UPDATE:
+            logger.debug("Received a balance update.")
+            self._latest_balance = message
+
+        if event_code in self._event_callbacks:
+            logger.debug(
+                "Dispatching event %s to %d callbacks.",
+                event_code,
+                len(self._event_callbacks[event_code]),
+            )
+            for callback in tuple(self._event_callbacks[event_code]):
+                task = asyncio.create_task(self._run_callback(callback, message))
+                task.add_done_callback(self._consume_callback_result)
+
+    async def _run_callback(self, callback, message):
+        try:
+            await callback(message)
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            logger.error("Event callback failed (%s).", type(exc).__name__)
+
+    @staticmethod
+    def _consume_callback_result(task):
+        if task.cancelled():
+            return
+        task.exception()
+
+    async def _ping_loop(self):
+        logger.debug("Keep-alive loop started.")
+        """Sends periodic pings (e.g., event 90) to keep the connection alive."""
+        while self._is_running:
+            try:
+                await asyncio.sleep(parameters.PING_INTERVAL)
+                if not self.connection.is_connected:
+                    logger.warning("Ping loop: Not connected, skipping ping.")
+                    continue
+                
+                logger.debug("Sending ping...")
+                # Event 90 seems to be the ping/keep-alive based on logs
+                # It requires a UUID and returns a timestamp
+                try:
+                    # Send ping and wait for response to ensure connection is active
+                    response = await self.send_request(settings.E_PING, {}, requires_response=True, timeout=5) 
+                    if response:
+                         logger.debug(f"Pong received (ts: {response.get('ts')})")
+                    else:
+                         logger.warning("Did not receive pong response within timeout.")
+                         # Consider triggering connection check/reconnect here
+                except ConnectionError:
+                     logger.warning("Ping failed: Connection error.")
+                     # Connection loss is handled by the receiver loop / callback
+                except asyncio.TimeoutError:
+                     logger.warning("Ping failed: Timeout waiting for pong.")
+                     # Consider triggering connection check/reconnect here
+                except Exception as e:
+                     logger.error("Ping request failed (%s).", type(e).__name__)
+
+            except asyncio.CancelledError:
+                logger.info("Ping loop cancelled.")
+                break
+            except Exception as e:
+                 logger.error("Ping loop failed (%s).", type(e).__name__)
+                 await asyncio.sleep(settings.PING_INTERVAL) # Avoid tight loop on error
+
+    def _log_raw(self, direction: str, message: str):
+        logger.warning("Raw message logging is disabled to protect account and session data.")
+    # --- Convenience property to get last known balance ---
+    @property
+    def current_balance(self) -> Dict[str, Any]:
+        """Returns the last known balance dictionary received from the server (event 55)."""
+        return self._latest_balance
+
+    async def initialize_session(self):
+        """
+        Initialize subscriptions and keep-alive requests.
+
+        Account discovery is deliberately omitted: event 1068 did not
+        produce a verified response in live testing. Balance updates
+        arrive independently through event 55.
+        """
+        if self._session_initialized:
+            logger.debug("Session is already initialized.")
+            return
+
+        if not self.connection.is_connected:
+            raise ConnectionError("Cannot initialize a disconnected client.")
+
+        logger.info("Initializing NIGHTSHIFT subscriptions...")
+
+        startup_subscriptions = [
+            [220],
+            [110, 700, 112, 140, 1038, 1037, 1039, 141, 22, 26, 111],
+            [1054, 1076, 1301, 1097],
+            [141, 241],
+            [230, 231],
+            [75],
+            [1055],
+            [2223, 2301, 55, 150, 152, 151, 126, 602, 601],
+            [2076],
+            [126],
+        ]
+
+        for subscription in startup_subscriptions:
+            await self.send_request(
+                98,
+                subscription,
+                requires_response=False,
+            )
+
+        # Event 55 is included in the startup subscriptions above.
+        self.balance._subscribed = True
+
+        for _ in range(2):
+            await self.send_request(
+                settings.E_PING,
+                {},
+                requires_response=True,
+            )
+
+        logger.info(
+            "Startup subscriptions and ping checks completed. "
+            "Account selection was not attempted."
+        )
+        self._session_initialized = True
+
+    async def wait_for_balance(self, timeout: float = 10.0, poll_interval: float = 0.5):
+        """
+        Waits until a balance update is received or timeout is reached.
+        Returns the balance dict if received, else None.
+        """
+        logger.info("Waiting for a balance update (timeout=%s seconds).", timeout)
+        waited = 0.0
+        while waited < timeout:
+            balance = self.balance.get_last_balance()
+            if balance and 'd' in balance and balance['d']:
+                logger.info("Balance update received.")
+                return balance
+            await asyncio.sleep(poll_interval)
+            waited += poll_interval
+        logger.warning("Timed out waiting for a balance update.")
+        return None
