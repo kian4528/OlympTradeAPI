@@ -75,16 +75,37 @@ class TradeAPI:
             timeout=5.0,
         )
 
-        if not isinstance(response, dict) or response.get("e") != 23:
-            return None
+        if not isinstance(response, dict):
+            raise RuntimeError(
+                f"Unexpected event-23 response type: {type(response).__name__}"
+            )
 
+        event_code = response.get("e")
         details = response.get("d")
+
+        if event_code != 23:
+            raise RuntimeError(
+                f"Unexpected response event code: {event_code!r}"
+            )
+
         if not isinstance(details, list) or not details:
-            return None
+            detail_type = type(details).__name__
+            detail_keys = (
+                sorted(str(key) for key in details.keys())
+                if isinstance(details, dict)
+                else []
+            )
+            raise RuntimeError(
+                f"Event-23 response has unexpected data: "
+                f"type={detail_type}, keys={detail_keys}"
+            )
 
         first = details[0]
         if not isinstance(first, dict):
-            return None
+            raise RuntimeError(
+                f"Event-23 response item has unexpected type: "
+                f"{type(first).__name__}"
+            )
 
         return first
 

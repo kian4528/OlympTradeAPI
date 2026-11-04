@@ -304,7 +304,7 @@ class Runner:
             except Exception as exc:
                 self.uncertain_order = True
                 self.dashboard.update(
-                    12, f"Trade      UNCERTAIN | {type(exc).__name__}"
+                    12, f"Trade      ERROR | {type(exc).__name__}: {str(exc)[:90]}"
                 )
                 self.dashboard.update(
                     22, "HALTED: check demo account before restart"
