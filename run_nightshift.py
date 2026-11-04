@@ -12,11 +12,12 @@ from olymptrade_ws.olympconfig import parameters
 
 logging.disable(logging.CRITICAL)
 
-PAIR = "EURUSD_OTC"
 STAKE = 1
 EXPIRY_SECONDS = 5
 CATEGORY = "digital"
 STATS_FILE = Path("nightshift_stats.json")
+INVENTORY_EVENT = 1054
+INVENTORY_WAIT_SECONDS = 6
 
 
 class Dashboard:
@@ -30,12 +31,12 @@ class Dashboard:
         sys.stdout.write(f"\033[{row};1H\033[2K{value}")
         sys.stdout.flush()
 
-    def start(self):
+    def start(self, pair):
         sys.stdout.write("\033[2J\033[H\033[?25l")
         sys.stdout.flush()
         self.update(1, "NIGHTSHIFT | AUTOMATED DEMO")
         self.update(2, "━" * 48)
-        self.update(4, f"PAIR       {PAIR}")
+        self.update(4, f"PAIR       {pair}")
         self.update(5, f"ACCOUNT    DEMO | STAKE {STAKE} USD")
         self.update(6, f"EXPIRY     {EXPIRY_SECONDS} SECONDS")
         self.update(8, "SESSION")
@@ -60,9 +61,9 @@ class Runner:
     def __init__(self):
         self.client = None
         self.dashboard = Dashboard()
-        self.strategy = FCT10sStrategy(
-            StrategyConfig(pair=PAIR, expiry_seconds=EXPIRY_SECONDS)
-        )
+        self.pair = None
+        self.strategy = None
+        self.inventory_messages = []
         self.ticks = 0
         self.order_lock = asyncio.Lock()
         self.active_order = False
@@ -116,6 +117,105 @@ class Runner:
             return [item for item in data if isinstance(item, dict)]
         return []
 
+    async def on_inventory(self, message):
+        self.inventory_messages.append(message.get("d"))
+
+    @staticmethod
+    def is_locked(value):
+        if isinstance(value, str):
+            return value.strip().lower() in ("true", "1", "yes", "locked")
+        return bool(value)
+
+    def get_currency_instruments(self):
+        instruments = {}
+
+        for payload in self.inventory_messages:
+            records = payload if isinstance(payload, list) else [payload]
+
+            for item in records:
+                if not isinstance(item, dict):
+                    continue
+                if str(item.get("group", "")).strip().lower() != "currency":
+                    continue
+
+                instrument_id = item.get("id")
+                title = item.get("title")
+
+                if instrument_id is None or not str(instrument_id).strip():
+                    continue
+
+                pair_id = str(instrument_id).strip()
+                instruments[pair_id] = {
+                    "id": pair_id,
+                    "title": str(title or pair_id),
+                    "locked": self.is_locked(item.get("locked")),
+                    "locked_trading": self.is_locked(
+                        item.get("locked_trading")
+                    ),
+                    "locked_buy": self.is_locked(item.get("locked_buy")),
+                    "locked_sell": self.is_locked(item.get("locked_sell")),
+                }
+
+        return sorted(
+            instruments.values(),
+            key=lambda item: item["title"].casefold(),
+        )
+
+    @staticmethod
+    def instrument_is_locked(instrument):
+        return any(
+            instrument.get(field, True)
+            for field in ("locked", "locked_trading")
+        )
+
+    def choose_currency(self, instruments):
+        if not instruments:
+            raise RuntimeError(
+                "No currency instruments were received from the live catalogue."
+            )
+
+        print("\nLIVE CURRENCY INSTRUMENTS")
+        print("=" * 62)
+
+        for index, instrument in enumerate(instruments, start=1):
+            status = (
+                "LOCKED"
+                if self.instrument_is_locked(instrument)
+                else "AVAILABLE"
+            )
+            print(
+                f"{index:>3}. {instrument['title']:<24} "
+                f"ID: {instrument['id']:<14} {status}"
+            )
+
+        print("=" * 62)
+
+        while True:
+            answer = input(
+                f"Select a currency pair (1-{len(instruments)}): "
+            ).strip()
+
+            try:
+                selection = int(answer)
+            except ValueError:
+                print("Enter the number shown beside the pair.")
+                continue
+
+            if not 1 <= selection <= len(instruments):
+                print("Selection is outside the listed range.")
+                continue
+
+            chosen = instruments[selection - 1]
+
+            if self.instrument_is_locked(chosen):
+                print(
+                    f"{chosen['title']} is currently locked by the platform. "
+                    "Choose an available pair."
+                )
+                continue
+
+            return chosen
+
     async def on_interim(self, message):
         for item in self.event_data(message):
             status = item.get("status", "in progress")
@@ -128,7 +228,10 @@ class Runner:
     async def on_closed(self, message):
         for item in self.event_data(message):
             trade_id = item.get("id")
-            if trade_id is not None and str(trade_id) in self.stats["closed_ids"]:
+            if (
+                trade_id is not None
+                and str(trade_id) in self.stats["closed_ids"]
+            ):
                 continue
 
             status = str(item.get("status", "")).lower()
@@ -175,7 +278,9 @@ class Runner:
 
             if self.client.account_group != "demo":
                 self.uncertain_order = True
-                self.dashboard.update(12, "Trade      HALTED | DEMO CHECK FAILED")
+                self.dashboard.update(
+                    12, "Trade      HALTED | DEMO CHECK FAILED"
+                )
                 return
 
             self.active_order = True
@@ -187,7 +292,7 @@ class Runner:
 
             try:
                 result = await self.client.trade.place_order(
-                    pair=PAIR,
+                    pair=self.pair,
                     amount=STAKE,
                     direction=signal.direction,
                     duration=EXPIRY_SECONDS,
@@ -201,26 +306,36 @@ class Runner:
                 self.dashboard.update(
                     12, f"Trade      UNCERTAIN | {type(exc).__name__}"
                 )
-                self.dashboard.update(22, "HALTED: check demo account before restart")
+                self.dashboard.update(
+                    22, "HALTED: check demo account before restart"
+                )
                 return
 
             if result is None:
                 self.uncertain_order = True
-                self.dashboard.update(12, "Trade      UNCERTAIN | NO CONFIRMATION")
-                self.dashboard.update(22, "HALTED: check demo account before restart")
+                self.dashboard.update(
+                    12, "Trade      UNCERTAIN | NO CONFIRMATION"
+                )
+                self.dashboard.update(
+                    22, "HALTED: check demo account before restart"
+                )
                 return
 
-            self.dashboard.update(12, "Trade      SENT | WAITING FOR BROKER")
+            self.dashboard.update(
+                12, "Trade      SENT | WAITING FOR BROKER"
+            )
 
     async def on_tick(self, message):
         for item in self.event_data(message):
-            if item.get("p") != PAIR:
+            if str(item.get("p", "")) != self.pair:
                 continue
+
             try:
                 timestamp = float(item["t"])
                 price = float(item["q"])
             except (KeyError, TypeError, ValueError):
                 continue
+
             if timestamp <= 0 or price <= 0:
                 continue
 
@@ -247,11 +362,10 @@ class Runner:
         if not token:
             raise SystemExit("An access token is required.")
 
-        self.dashboard.start()
-        self.refresh_stats()
         self.client = OlympTradeClient(access_token=token)
         started = False
 
+        inventory_callback = self.on_inventory
         callbacks = [
             (parameters.E_TICK_UPDATE, self.on_tick),
             (parameters.E_TRADE_UPDATE_INTERIM, self.on_interim),
@@ -260,19 +374,47 @@ class Runner:
         ]
 
         try:
+            # Register before initialization so the live catalogue event
+            # cannot be missed during startup subscriptions.
+            self.client.register_callback(
+                INVENTORY_EVENT, inventory_callback
+            )
+
             await self.client.start()
             started = True
             await self.client.initialize_session()
 
-            if self.client.account_group != "demo" or not self.client.account_id:
+            if (
+                self.client.account_group != "demo"
+                or not isinstance(self.client.account_id, int)
+                or self.client.account_id <= 0
+            ):
                 raise RuntimeError("Verified demo account required.")
+
+            await asyncio.sleep(INVENTORY_WAIT_SECONDS)
+
+            instruments = self.get_currency_instruments()
+            selected = self.choose_currency(instruments)
+            self.pair = selected["id"]
+
+            self.strategy = FCT10sStrategy(
+                StrategyConfig(
+                    pair=self.pair,
+                    expiry_seconds=EXPIRY_SECONDS,
+                )
+            )
+
+            self.dashboard.start(selected["title"])
+            self.refresh_stats()
 
             for event_code, callback in callbacks:
                 self.client.register_callback(event_code, callback)
 
-            await self.client.market.subscribe_ticks(PAIR)
+            await self.client.market.subscribe_ticks(self.pair)
+
             self.dashboard.update(
-                22, f"DEMO ACTIVE | ACCOUNT {self.client.account_id} | Ctrl+C to stop"
+                22,
+                f"DEMO ACTIVE | ACCOUNT {self.client.account_id} | Ctrl+C to stop",
             )
 
             while True:
@@ -281,11 +423,19 @@ class Runner:
         finally:
             if self.order_task and not self.order_task.done():
                 self.order_task.cancel()
-                await asyncio.gather(self.order_task, return_exceptions=True)
+                await asyncio.gather(
+                    self.order_task, return_exceptions=True
+                )
 
             if started:
                 for event_code, callback in callbacks:
-                    self.client.unregister_callback(event_code, callback)
+                    self.client.unregister_callback(
+                        event_code, callback
+                    )
+
+                self.client.unregister_callback(
+                    INVENTORY_EVENT, inventory_callback
+                )
                 await self.client.stop()
 
             self.dashboard.close()
