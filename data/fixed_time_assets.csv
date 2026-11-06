@@ -1,0 +1,308 @@
+id,name,title,group,profitability,locked,locked_trading,min_duration,max_duration,allowed_fast_deals_durations,metadata_received,profitability_received
+AAL,AAL,AAL,,,,,,,,False,True
+AAPL,AAPL,Apple,stock,,True,True,,,,True,True
+AGI_X,AGI_X,AI Global Index,composite,,False,False,,,,True,True
+ALTCOIN,ALTCOIN,ALTCOIN,,,,,,,,False,True
+AMD,AMD,AMD,stock,,True,True,,,,True,False
+AMZN,AMZN,Amazon,stock,,True,True,,,,True,True
+ARAB_X,ARAB_X,ARAB_X,,,,,,,,False,True
+ASIA_X,ASIA_X,Asia Composite Index,composite,,False,False,,,,True,True
+ASTRO_X,ASTRO_X,ASTRO_X,,,,,,,,False,True
+ATH_X,ATH_X,ATH_X,,,,,,,,False,True
+AUDCAD,AUDCAD,AUD/CAD,currency,,False,False,,,,True,True
+AUDCAD_OTC,AUDCAD_OTC,AUDCAD_OTC,,,,,,,,False,True
+AUDCHF,AUDCHF,AUD/CHF,currency,,False,False,,,,True,True
+AUDCHF_OTC,AUDCHF_OTC,AUDCHF_OTC,,,,,,,,False,True
+AUDJPY,AUDJPY,AUD/JPY,currency,,False,False,,,,True,True
+AUDJPY_OTC,AUDJPY_OTC,AUDJPY_OTC,,,,,,,,False,True
+AUDNZD,AUDNZD,AUD/NZD,currency,,False,False,,,,True,True
+AUDNZD_OTC,AUDNZD_OTC,AUDNZD_OTC,,,,,,,,False,True
+AUDUSD,AUDUSD,AUD/USD,currency,,False,False,,,,True,True
+AUDUSD_IDX,AUDUSD_IDX,AUDUSD_IDX,,,,,,,,False,True
+AUDUSD_OTC,AUDUSD_OTC,AUDUSD_OTC,,,,,,,,False,True
+BA,BA,Boeing,stock,,True,True,,,,True,True
+BABA,BABA,Alibaba,stock,,True,True,,,,True,False
+BCHUSD,BCHUSD,BCHUSD,,,,,,,,False,True
+BDIX,BDIX,BDIX,,,,,,,,False,True
+BIDU,BIDU,Baidu,stock,,True,True,,,,True,False
+BMW,BMW,BMW,,,,,,,,False,True
+BNBUSD_OTC,BNBUSD_OTC,BNBUSD_OTC,,,,,,,,False,True
+BOOM_150_X,BOOM_150_X,Boom STM 150,crashboom,,False,False,,,,True,False
+BOOM_300_X,BOOM_300_X,Boom STM 300,crashboom,,False,False,,,,True,False
+BRAZ_X,BRAZ_X,BRAZ_X,,,,,,,,False,True
+BRZU,BRZU,ETF MSCI Brazil 2х,etf,,True,True,,,,True,True
+BTCUSD_OTC,BTCUSD_OTC,BTCUSD_OTC,,,,,,,,False,True
+BTGUSD,BTGUSD,BTGUSD,,,,,,,,False,True
+Bitcoin,Bitcoin,Bitcoin,,,,,,,,False,True
+CADCHF,CADCHF,CAD/CHF,currency,,False,False,,,,True,True
+CADCHF_OTC,CADCHF_OTC,CADCHF_OTC,,,,,,,,False,True
+CADJPY,CADJPY,CAD/JPY,currency,,False,False,,,,True,True
+CADJPY_OTC,CADJPY_OTC,CADJPY_OTC,,,,,,,,False,True
+CAFFEINA_X,CAFFEINA_X,CAFFEINA_X,,,,,,,,False,True
+CAT,CAT,Caterpillar,stock,,True,True,,,,True,False
+CHFJPY,CHFJPY,CHF/JPY,currency,,False,False,,,,True,True
+CHFJPY_OTC,CHFJPY_OTC,CHFJPY_OTC,,,,,,,,False,True
+CMDTY_X,CMDTY_X,Compound Index,composite,,False,False,,,,True,True
+CRASH_150_X,CRASH_150_X,Crash STM 150,crashboom,,False,False,,,,True,False
+CRASH_300_X,CRASH_300_X,Crash STM 300,crashboom,,False,False,,,,True,False
+CRM,CRM,Salesforce,stock,,True,True,,,,True,True
+CRYPTO_X,CRYPTO_X,CRYPTO_X,,,,,,,,False,True
+CSCO,CSCO,Cisco,stock,,True,True,,,,True,False
+CVX,CVX,Chevron,stock,,True,True,,,,True,False
+Coffee,Coffee,Coffee,,,,,,,,False,True
+CryptoIndex,CryptoIndex,CryptoIndex,,,,,,,,False,True
+DASHUSD,DASHUSD,DASHUSD,,,,,,,,False,True
+DDI_X,DDI_X,DDI_X,,,,,,,,False,True
+DGAZ,DGAZ,DGAZ,,,,,,,,False,True
+DIS,DIS,Disney,stock,,True,True,,,,True,False
+DOGUSD_OTC,DOGUSD_OTC,DOGUSD_OTC,,,,,,,,False,True
+EBAY,EBAY,eBay,stock,,True,True,,,,True,False
+ES,ES,S&P 500,index,,False,False,,,,True,True
+ETCUSD,ETCUSD,ETCUSD,,,,,,,,False,True
+ETHBTC,ETHBTC,ETHBTC,,,,,,,,False,True
+ETHUSD,ETHUSD,ETHUSD,,,,,,,,False,True
+ETHUSD_OTC,ETHUSD_OTC,ETHUSD_OTC,,,,,,,,False,True
+EURAUD,EURAUD,EUR/AUD,currency,,False,False,,,,True,True
+EURAUD_OTC,EURAUD_OTC,EURAUD_OTC,,,,,,,,False,True
+EURCAD,EURCAD,EUR/CAD,currency,,False,False,,,,True,True
+EURCAD_OTC,EURCAD_OTC,EURCAD_OTC,,,,,,,,False,True
+EURCHF,EURCHF,EUR/CHF,currency,,False,False,,,,True,True
+EURCHF_OTC,EURCHF_OTC,EURCHF_OTC,,,,,,,,False,True
+EURGBP,EURGBP,EUR/GBP,currency,,False,False,,,,True,True
+EURGBP_OTC,EURGBP_OTC,EURGBP_OTC,,,,,,,,False,True
+EURJPY,EURJPY,EUR/JPY,currency,,False,False,,,,True,True
+EURJPY_OTC,EURJPY_OTC,EURJPY_OTC,,,,,,,,False,True
+EURNZD,EURNZD,EUR/NZD,currency,,False,False,,,,True,True
+EURNZD_OTC,EURNZD_OTC,EURNZD_OTC,,,,,,,,False,True
+EUROPE_X,EUROPE_X,Europe Composite Index,composite,,False,False,,,,True,True
+EURRUB,EURRUB,EURRUB,,,,,,,,False,True
+EURUSD,EURUSD,EUR/USD,currency,,False,False,,,,True,True
+EURUSD_IDX,EURUSD_IDX,EURUSD_IDX,,,,,,,,False,True
+EURUSD_OTC,EURUSD_OTC,EURUSD_OTC,,,,,,,,False,True
+FB,FB,Meta,stock,,True,True,,,,True,True
+FCE,FCE,CAC 40,index,,False,False,,,,True,True
+FDAX,FDAX,DAX,index,,False,False,,,,True,True
+FESX,FESX,EURO STOXX 50,index,,False,False,,,,True,True
+GBPAUD,GBPAUD,GBP/AUD,currency,,False,False,,,,True,True
+GBPAUD_OTC,GBPAUD_OTC,GBPAUD_OTC,,,,,,,,False,True
+GBPCAD,GBPCAD,GBP/CAD,currency,,False,False,,,,True,True
+GBPCAD_OTC,GBPCAD_OTC,GBPCAD_OTC,,,,,,,,False,True
+GBPCHF,GBPCHF,GBP/CHF,currency,,False,False,,,,True,True
+GBPCHF_OTC,GBPCHF_OTC,GBPCHF_OTC,,,,,,,,False,True
+GBPJPY,GBPJPY,GBP/JPY,currency,,False,False,,,,True,True
+GBPJPY_OTC,GBPJPY_OTC,GBPJPY_OTC,,,,,,,,False,True
+GBPNZD,GBPNZD,GBP/NZD,currency,,False,False,,,,True,True
+GBPNZD_OTC,GBPNZD_OTC,GBPNZD_OTC,,,,,,,,False,True
+GBPUSD,GBPUSD,GBP/USD,currency,,False,False,,,,True,True
+GBPUSD_IDX,GBPUSD_IDX,GBPUSD_IDX,,,,,,,,False,True
+GBPUSD_OTC,GBPUSD_OTC,GBPUSD_OTC,,,,,,,,False,True
+GOAL_X,GOAL_X,GOAL_X,,,,,,,,False,True
+GOAL_X_1,GOAL_X_1,GOAL_X_1,,,,,,,,False,True
+GOAL_X_10,GOAL_X_10,GOAL_X_10,,,,,,,,False,True
+GOAL_X_100,GOAL_X_100,GOAL_X_100,,,,,,,,False,True
+GOAL_X_101,GOAL_X_101,GOAL_X_101,,,,,,,,False,True
+GOAL_X_102,GOAL_X_102,GOAL_X_102,,,,,,,,False,True
+GOAL_X_103,GOAL_X_103,GOAL_X_103,,,,,,,,False,True
+GOAL_X_104,GOAL_X_104,GOAL_X_104,,,,,,,,False,True
+GOAL_X_11,GOAL_X_11,GOAL_X_11,,,,,,,,False,True
+GOAL_X_12,GOAL_X_12,GOAL_X_12,,,,,,,,False,True
+GOAL_X_13,GOAL_X_13,GOAL_X_13,,,,,,,,False,True
+GOAL_X_14,GOAL_X_14,GOAL_X_14,,,,,,,,False,True
+GOAL_X_15,GOAL_X_15,GOAL_X_15,,,,,,,,False,True
+GOAL_X_16,GOAL_X_16,GOAL_X_16,,,,,,,,False,True
+GOAL_X_17,GOAL_X_17,GOAL_X_17,,,,,,,,False,True
+GOAL_X_18,GOAL_X_18,GOAL_X_18,,,,,,,,False,True
+GOAL_X_19,GOAL_X_19,GOAL_X_19,,,,,,,,False,True
+GOAL_X_2,GOAL_X_2,GOAL_X_2,,,,,,,,False,True
+GOAL_X_20,GOAL_X_20,GOAL_X_20,,,,,,,,False,True
+GOAL_X_21,GOAL_X_21,GOAL_X_21,,,,,,,,False,True
+GOAL_X_22,GOAL_X_22,GOAL_X_22,,,,,,,,False,True
+GOAL_X_23,GOAL_X_23,GOAL_X_23,,,,,,,,False,True
+GOAL_X_24,GOAL_X_24,GOAL_X_24,,,,,,,,False,True
+GOAL_X_25,GOAL_X_25,GOAL_X_25,,,,,,,,False,True
+GOAL_X_26,GOAL_X_26,GOAL_X_26,,,,,,,,False,True
+GOAL_X_27,GOAL_X_27,GOAL_X_27,,,,,,,,False,True
+GOAL_X_28,GOAL_X_28,GOAL_X_28,,,,,,,,False,True
+GOAL_X_29,GOAL_X_29,GOAL_X_29,,,,,,,,False,True
+GOAL_X_3,GOAL_X_3,GOAL_X_3,,,,,,,,False,True
+GOAL_X_30,GOAL_X_30,GOAL_X_30,,,,,,,,False,True
+GOAL_X_31,GOAL_X_31,GOAL_X_31,,,,,,,,False,True
+GOAL_X_32,GOAL_X_32,GOAL_X_32,,,,,,,,False,True
+GOAL_X_33,GOAL_X_33,GOAL_X_33,,,,,,,,False,True
+GOAL_X_34,GOAL_X_34,GOAL_X_34,,,,,,,,False,True
+GOAL_X_35,GOAL_X_35,GOAL_X_35,,,,,,,,False,True
+GOAL_X_36,GOAL_X_36,GOAL_X_36,,,,,,,,False,True
+GOAL_X_37,GOAL_X_37,GOAL_X_37,,,,,,,,False,True
+GOAL_X_38,GOAL_X_38,GOAL_X_38,,,,,,,,False,True
+GOAL_X_39,GOAL_X_39,GOAL_X_39,,,,,,,,False,True
+GOAL_X_4,GOAL_X_4,GOAL_X_4,,,,,,,,False,True
+GOAL_X_40,GOAL_X_40,GOAL_X_40,,,,,,,,False,True
+GOAL_X_41,GOAL_X_41,GOAL_X_41,,,,,,,,False,True
+GOAL_X_42,GOAL_X_42,GOAL_X_42,,,,,,,,False,True
+GOAL_X_43,GOAL_X_43,GOAL_X_43,,,,,,,,False,True
+GOAL_X_44,GOAL_X_44,GOAL_X_44,,,,,,,,False,True
+GOAL_X_45,GOAL_X_45,GOAL_X_45,,,,,,,,False,True
+GOAL_X_46,GOAL_X_46,GOAL_X_46,,,,,,,,False,True
+GOAL_X_47,GOAL_X_47,GOAL_X_47,,,,,,,,False,True
+GOAL_X_48,GOAL_X_48,GOAL_X_48,,,,,,,,False,True
+GOAL_X_49,GOAL_X_49,GOAL_X_49,,,,,,,,False,True
+GOAL_X_5,GOAL_X_5,GOAL_X_5,,,,,,,,False,True
+GOAL_X_50,GOAL_X_50,GOAL_X_50,,,,,,,,False,True
+GOAL_X_51,GOAL_X_51,GOAL_X_51,,,,,,,,False,True
+GOAL_X_52,GOAL_X_52,GOAL_X_52,,,,,,,,False,True
+GOAL_X_53,GOAL_X_53,GOAL_X_53,,,,,,,,False,True
+GOAL_X_54,GOAL_X_54,GOAL_X_54,,,,,,,,False,True
+GOAL_X_55,GOAL_X_55,GOAL_X_55,,,,,,,,False,True
+GOAL_X_56,GOAL_X_56,GOAL_X_56,,,,,,,,False,True
+GOAL_X_57,GOAL_X_57,GOAL_X_57,,,,,,,,False,True
+GOAL_X_58,GOAL_X_58,GOAL_X_58,,,,,,,,False,True
+GOAL_X_59,GOAL_X_59,GOAL_X_59,,,,,,,,False,True
+GOAL_X_6,GOAL_X_6,GOAL_X_6,,,,,,,,False,True
+GOAL_X_60,GOAL_X_60,GOAL_X_60,,,,,,,,False,True
+GOAL_X_61,GOAL_X_61,GOAL_X_61,,,,,,,,False,True
+GOAL_X_62,GOAL_X_62,GOAL_X_62,,,,,,,,False,True
+GOAL_X_63,GOAL_X_63,GOAL_X_63,,,,,,,,False,True
+GOAL_X_64,GOAL_X_64,GOAL_X_64,,,,,,,,False,True
+GOAL_X_65,GOAL_X_65,GOAL_X_65,,,,,,,,False,True
+GOAL_X_66,GOAL_X_66,GOAL_X_66,,,,,,,,False,True
+GOAL_X_67,GOAL_X_67,GOAL_X_67,,,,,,,,False,True
+GOAL_X_68,GOAL_X_68,GOAL_X_68,,,,,,,,False,True
+GOAL_X_69,GOAL_X_69,GOAL_X_69,,,,,,,,False,True
+GOAL_X_7,GOAL_X_7,GOAL_X_7,,,,,,,,False,True
+GOAL_X_70,GOAL_X_70,GOAL_X_70,,,,,,,,False,True
+GOAL_X_71,GOAL_X_71,GOAL_X_71,,,,,,,,False,True
+GOAL_X_72,GOAL_X_72,GOAL_X_72,,,,,,,,False,True
+GOAL_X_73,GOAL_X_73,GOAL_X_73,,,,,,,,False,True
+GOAL_X_74,GOAL_X_74,GOAL_X_74,,,,,,,,False,True
+GOAL_X_75,GOAL_X_75,GOAL_X_75,,,,,,,,False,True
+GOAL_X_76,GOAL_X_76,GOAL_X_76,,,,,,,,False,True
+GOAL_X_77,GOAL_X_77,GOAL_X_77,,,,,,,,False,True
+GOAL_X_78,GOAL_X_78,GOAL_X_78,,,,,,,,False,True
+GOAL_X_79,GOAL_X_79,GOAL_X_79,,,,,,,,False,True
+GOAL_X_8,GOAL_X_8,GOAL_X_8,,,,,,,,False,True
+GOAL_X_80,GOAL_X_80,GOAL_X_80,,,,,,,,False,True
+GOAL_X_81,GOAL_X_81,GOAL_X_81,,,,,,,,False,True
+GOAL_X_82,GOAL_X_82,GOAL_X_82,,,,,,,,False,True
+GOAL_X_83,GOAL_X_83,GOAL_X_83,,,,,,,,False,True
+GOAL_X_84,GOAL_X_84,GOAL_X_84,,,,,,,,False,True
+GOAL_X_85,GOAL_X_85,GOAL_X_85,,,,,,,,False,True
+GOAL_X_86,GOAL_X_86,GOAL_X_86,,,,,,,,False,True
+GOAL_X_87,GOAL_X_87,GOAL_X_87,,,,,,,,False,True
+GOAL_X_88,GOAL_X_88,GOAL_X_88,,,,,,,,False,True
+GOAL_X_89,GOAL_X_89,GOAL_X_89,,,,,,,,False,True
+GOAL_X_9,GOAL_X_9,GOAL_X_9,,,,,,,,False,True
+GOAL_X_90,GOAL_X_90,GOAL_X_90,,,,,,,,False,True
+GOAL_X_91,GOAL_X_91,GOAL_X_91,,,,,,,,False,True
+GOAL_X_92,GOAL_X_92,GOAL_X_92,,,,,,,,False,True
+GOAL_X_93,GOAL_X_93,GOAL_X_93,,,,,,,,False,True
+GOAL_X_94,GOAL_X_94,GOAL_X_94,,,,,,,,False,True
+GOAL_X_95,GOAL_X_95,GOAL_X_95,,,,,,,,False,True
+GOAL_X_96,GOAL_X_96,GOAL_X_96,,,,,,,,False,True
+GOAL_X_97,GOAL_X_97,GOAL_X_97,,,,,,,,False,True
+GOAL_X_98,GOAL_X_98,GOAL_X_98,,,,,,,,False,True
+GOAL_X_99,GOAL_X_99,GOAL_X_99,,,,,,,,False,True
+GOOGL,GOOGL,Google,stock,,True,True,,,,True,True
+GS,GS,Goldman Sachs,stock,,True,True,,,,True,False
+HG,HG,HG,,,,,,,,False,True
+HMA_X,HMA_X,HMA_X,,,,,,,,False,True
+HOMEDEPOT,HOMEDEPOT,Home Depot,stock,,True,True,,,,True,False
+HOOD,HOOD,HOOD,,,,,,,,False,True
+HSI,HSI,HSI,,,,,,,,False,True
+IBIT,IBIT,iShares Bitcoin Trust,etf,,True,True,,,,True,False
+IBM,IBM,IBM,stock,,True,True,,,,True,True
+IPL2022,IPL2022,IPL2022,,,,,,,,False,True
+IYR,IYR,ETF U.S. Real Estate,etf,,True,True,,,,True,True
+JNJ,JNJ,Johnson & Johnson,stock,,True,True,,,,True,False
+JPM,JPM,JPMorgan Chase,stock,,True,True,,,,True,False
+KO,KO,Coca-Cola,stock,,True,True,,,,True,True
+LATAM_X,LATAM_X,LATAM_X,,,,,,,,False,True
+LTCBTC,LTCBTC,LTCBTC,,,,,,,,False,True
+LTCUSD,LTCUSD,LTCUSD,,,,,,,,False,True
+LTCUSD_OTC,LTCUSD_OTC,LTCUSD_OTC,,,,,,,,False,True
+MA,MA,MasterCard,stock,,True,True,,,,True,True
+MCD,MCD,McDonald's,stock,,True,True,,,,True,True
+MCI_X,MCI_X,MCI_X,,,,,,,,False,True
+METAL_X,METAL_X,METAL_X,,,,,,,,False,True
+MHJNTR_X,MHJNTR_X,MHJNTR_X,,,,,,,,False,True
+MMM,MMM,3M Company,stock,,True,True,,,,True,False
+MOONCH_X,MOONCH_X,MOONCH_X,,,,,,,,False,True
+MS,MS,Morgan Stanley,stock,,True,True,,,,True,False
+MSFT,MSFT,Microsoft,stock,,True,True,,,,True,True
+NFLX,NFLX,Netflix,stock,,True,True,,,,True,True
+NG,NG,NG,,,,,,,,False,True
+NHI_X,NHI_X,NHI_X,,,,,,,,False,True
+NINTENDO_JP,NINTENDO_JP,NINTENDO_JP,,,,,,,,False,True
+NKD,NKD,NKD,,,,,,,,False,True
+NKE,NKE,Nike,stock,,True,True,,,,True,False
+NOVN,NOVN,Novartis,stock,,True,True,,,,True,False
+NQ,NQ,NASDAQ,index,,False,False,,,,True,True
+NVDA,NVDA,Nvidia,stock,,True,True,,,,True,True
+NY2027_X,NY2027_X,NY2027_X,,,,,,,,False,True
+NZDCAD,NZDCAD,NZD/CAD,currency,,False,False,,,,True,True
+NZDCAD_OTC,NZDCAD_OTC,NZDCAD_OTC,,,,,,,,False,True
+NZDCHF,NZDCHF,NZD/CHF,currency,,False,False,,,,True,True
+NZDCHF_OTC,NZDCHF_OTC,NZDCHF_OTC,,,,,,,,False,True
+NZDJPY,NZDJPY,NZD/JPY,currency,,False,False,,,,True,True
+NZDJPY_OTC,NZDJPY_OTC,NZDJPY_OTC,,,,,,,,False,True
+NZDUSD,NZDUSD,NZD/USD,currency,,False,False,,,,True,True
+NZDUSD_OTC,NZDUSD_OTC,NZDUSD_OTC,,,,,,,,False,True
+OASIS_X,OASIS_X,OASIS_X,,,,,,,,False,True
+OIL_X,OIL_X,OIL_X,,,,,,,,False,True
+ORCL,ORCL,Oracle,stock,,True,True,,,,True,False
+PEPEUSD_OTC,PEPEUSD_OTC,PEPEUSD_OTC,,,,,,,,False,True
+PEPSICO,PEPSICO,PepsiCo Inc.,stock,,True,True,,,,True,False
+PG,PG,Procter & Gamble,stock,,True,True,,,,True,False
+PL,PL,PL,,,,,,,,False,True
+PYPL,PYPL,PayPal,stock,,True,True,,,,True,False
+QAHWA_X,QAHWA_X,QAHWA_X,,,,,,,,False,True
+QATAR22_X,QATAR22_X,QATAR22_X,,,,,,,,False,True
+QCOM,QCOM,QCOM,,,,,,,,False,True
+QID,QID,ETF NASDAQ Reversal 2х,etf,,True,True,,,,True,True
+SBUX,SBUX,Starbucks,stock,,True,True,,,,True,True
+SHIBUSD_OTC,SHIBUSD_OTC,SHIBUSD_OTC,,,,,,,,False,True
+SOLUSD_OTC,SOLUSD_OTC,SOLUSD_OTC,,,,,,,,False,True
+SPCE,SPCE,SPCE,,,,,,,,False,True
+SPY,SPY,SPDR S&P 500 ETF Trust,etf,,True,True,,,,True,True
+STABLE_X,STABLE_X,STABLE_X,,,,,,,,False,True
+Sugar,Sugar,Sugar,,,,,,,,False,True
+TF,TF,TF,,,,,,,,False,True
+TPL2023_X,TPL2023_X,TPL2023_X,,,,,,,,False,True
+TRUMPUSD,TRUMPUSD,TRUMPUSD,,,,,,,,False,True
+TSLA,TSLA,Tesla,stock,,True,True,,,,True,True
+TSM,TSM,Taiwan Semiconductor,stock,,True,True,,,,True,True
+UAL,UAL,UAL,,,,,,,,False,True
+ULTRA15_X,ULTRA15_X,ULTRA15_X,,,,,,,,False,True
+ULTRA30_X,ULTRA30_X,ULTRA30_X,,,,,,,,False,True
+ULTRA_X,ULTRA_X,ULTRA_X,,,,,,,,False,True
+USDBRL,USDBRL,USDBRL,,,,,,,,False,True
+USDCAD,USDCAD,USD/CAD,currency,,False,False,,,,True,True
+USDCAD_IDX,USDCAD_IDX,USDCAD_IDX,,,,,,,,False,True
+USDCAD_OTC,USDCAD_OTC,USDCAD_OTC,,,,,,,,False,True
+USDCHF,USDCHF,USD/CHF,currency,,False,False,,,,True,True
+USDCHF_OTC,USDCHF_OTC,USDCHF_OTC,,,,,,,,False,True
+USDCLP,USDCLP,USDCLP,,,,,,,,False,True
+USDJPY,USDJPY,USD/JPY,currency,,False,False,,,,True,True
+USDJPY_IDX,USDJPY_IDX,USDJPY_IDX,,,,,,,,False,True
+USDJPY_OTC,USDJPY_OTC,USDJPY_OTC,,,,,,,,False,True
+USDMXN,USDMXN,USDMXN,,,,,,,,False,True
+USDNOK,USDNOK,USDNOK,,,,,,,,False,True
+USDRUB,USDRUB,USDRUB,,,,,,,,False,True
+USDSGD,USDSGD,USDSGD,,,,,,,,False,True
+USDTRY,USDTRY,USDTRY,,,,,,,,False,True
+UVXY,UVXY,"ETF S&P500 Volatility 1,5x",etf,,True,True,,,,True,True
+V,V,Visa,stock,,True,True,,,,True,True
+WMT,WMT,Walmart,stock,,True,True,,,,True,True
+WTI,WTI,WTI Crude Oil,goods,,False,False,,,,True,True
+XAGUSD,XAGUSD,Silver,metal,,False,False,,,,True,True
+XAGUSD_OTC,XAGUSD_OTC,XAGUSD_OTC,,,,,,,,False,True
+XAUUSD,XAUUSD,Gold,metal,,False,False,,,,True,True
+XAUUSD_OTC,XAUUSD_OTC,XAUUSD_OTC,,,,,,,,False,True
+XMRUSD,XMRUSD,XMRUSD,,,,,,,,False,True
+XOM,XOM,Exxon Mobil,stock,,True,True,,,,True,False
+XRPBTC,XRPBTC,XRPBTC,,,,,,,,False,True
+XRPUSD,XRPUSD,XRPUSD,,,,,,,,False,True
+XRPUSD_OTC,XRPUSD_OTC,XRPUSD_OTC,,,,,,,,False,True
+YM,YM,Dow Jones,index,,False,False,,,,True,True
+Z,Z,FTSE 100,index,,False,False,,,,True,True
+ZECUSD,ZECUSD,ZECUSD,,,,,,,,False,True
+_BRN,_BRN,BRENT,goods,,False,False,,,,True,True

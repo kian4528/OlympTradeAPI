@@ -1,0 +1,91 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pytype/
+.pyre/
+.hypothesis/
+.tox/
+.nox/
+.coverage*
+htmlcov/
+.cover/
+.cache/
+
+# Environments and secrets
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+ENV/
+env/
+*.pem
+*.key
+.pypirc
+
+# Packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+wheels/
+develop-eggs/
+pip-wheel-metadata/
+
+# Runtime state and logs
+*.log
+logs/*
+!logs/README.md
+olymptrade_ws/logs/*
+!olymptrade_ws/logs/README.md
+nightshift_stats.json
+last_trade_event.json
+
+# Local tool configuration
+.mcp.json
+opencode.json
+
+# Backups and debug artifacts
+*.bak
+*.backup
+*.debug
+*.before-*
+*.discovery-backup
+*.dashboard-backup*
+*.cleanup-backup
+*.nightshift-backup
+*.conflict-backup
+*.pre-cleanup
+*.orig
+*.rej
+*.swp
+*.swo
+patch_backup/
+
+# One-off diagnostics and probe utilities
+/demo_preflight.py
+/discover_assets.py
+/nightshift_demo_test.py
+/probe_*.py
+
+# Generated broker captures, inventories, and tick recordings
+/data/fixed_time_raw_events.json
+/data/fixed_time_protocol_probe.json
+/data/market_inventory.json
+/data/instruments.csv
+/data/tick_sessions/*.csv
+/data/eurusd_1m.csv
+
+# Generated dumps
+repomix-output.xml
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

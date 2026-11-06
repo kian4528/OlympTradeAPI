@@ -1,0 +1,523 @@
+{
+  "source_event": 74,
+  "duration_seconds": 5,
+  "captured_at": "2026-11-04T13:13:13.984300+00:00",
+  "count": 37,
+  "assets": [
+    {
+      "id": "EUROPE_X",
+      "title": "Europe Composite Index",
+      "group": "composite",
+      "profitability": 95,
+      "allowed_durations": [
+        5,
+        15,
+        30,
+        45
+      ],
+      "locked": false,
+      "locked_trading": false
+    },
+    {
+      "id": "EURUSD_OTC",
+      "title": "EUR/USD OTC",
+      "group": "otc",
+      "profitability": 95,
+      "allowed_durations": [
+        5,
+        15,
+        30,
+        45
+      ],
+      "locked": false,
+      "locked_trading": false
+    },
+    {
+      "id": "NZDUSD_OTC",
+      "title": "NZD/USD OTC",
+      "group": "otc",
+      "profitability": 95,
+      "allowed_durations": [
+        5,
+        15,
+        30,
+        45
+      ],
+      "locked": false,
+      "locked_trading": false
+    },
+    {
+      "id": "USDCHF_OTC",
+      "title": "USD/CHF OTC",
+      "group": "otc",
+      "profitability": 95,
+      "allowed_durations": [
+        5,
+        15,
+        30,
+        45
+      ],
+      "locked": false,
+      "locked_trading": false
+    },
+    {
+      "id": "USDJPY_OTC",
+      "title": "USD/JPY OTC",
+      "group": "otc",
+      "profitability": 95,
+      "allowed_durations": [
+        5,
+        15,
+        30,
+        45
+      ],
+      "locked": false,
+      "locked_trading": false
+    },
+    {
+      "id": "AUDUSD_OTC",
+      "title": "AUD/USD OTC",
+      "group": "otc",
+      "profitability": 93,
+      "allowed_durations": [
+        5,
+        15,
+        30,
+        45
+      ],
+      "locked": false,
+      "locked_trading": false
+    },
+    {
+      "id": "CMDTY_X",
+      "title": "Compound Index",
+      "group": "composite",
+      "profitability": 93,
+      "allowed_durations": [
+        5,
+        15,
+        30,
+        45
+      ],
+      "locked": false,
+      "locked_trading": false
+    },
+    {
+      "id": "GOAL_X",
+      "title": "Global Overview of Athletic Leagues Index",
+      "group": "composite",
+      "profitability": 90,
+      "allowed_durations": [
+        5,
+        15,
+        30,
+        45
+      ],
+      "locked": false,
+      "locked_trading": false
+    },
+    {
+      "id": "AGI_X",
+      "title": "AI Global Index",
+      "group": "composite",
+      "profitability": 85,
+      "allowed_durations": [
+        5,
+        15,
+        30,
+        45
+      ],
+      "locked": false,
+      "locked_trading": false
+    },
+    {
+      "id": "ASIA_X",
+      "title": "Asia Composite Index",
+      "group": "composite",
+      "profitability": 85,
+      "allowed_durations": [
+        5,
+        15,
+        30,
+        45
+      ],
+      "locked": false,
+      "locked_trading": false
+    },
+    {
+      "id": "AUDCAD_OTC",
+      "title": "AUD/CAD OTC",
+      "group": "otc",
+      "profitability": 85,
+      "allowed_durations": [
+        5,
+        15,
+        30,
+        45
+      ],
+      "locked": false,
+      "locked_trading": false
+    },
+    {
+      "id": "AUDCHF_OTC",
+      "title": "AUD/CHF OTC",
+      "group": "otc",
+      "profitability": 85,
+      "allowed_durations": [
+        5,
+        15,
+        30,
+        45
+      ],
+      "locked": false,
+      "locked_trading": false
+    },
+    {
+      "id": "AUDJPY_OTC",
+      "title": "AUD/JPY OTC",
+      "group": "otc",
+      "profitability": 85,
+      "allowed_durations": [
+        5,
+        15,
+        30,
+        45
+      ],
+      "locked": false,
+      "locked_trading": false
+    },
+    {
+      "id": "AUDNZD_OTC",
+      "title": "AUD/NZD OTC",
+      "group": "otc",
+      "profitability": 85,
+      "allowed_durations": [
+        5,
+        15,
+        30,
+        45
+      ],
+      "locked": false,
+      "locked_trading": false
+    },
+    {
+      "id": "CADCHF_OTC",
+      "title": "CAD/CHF OTC",
+      "group": "otc",
+      "profitability": 85,
+      "allowed_durations": [
+        5,
+        15,
+        30,
+        45
+      ],
+      "locked": false,
+      "locked_trading": false
+    },
+    {
+      "id": "CADJPY_OTC",
+      "title": "CAD/JPY OTC",
+      "group": "otc",
+      "profitability": 85,
+      "allowed_durations": [
+        5,
+        15,
+        30,
+        45
+      ],
+      "locked": false,
+      "locked_trading": false
+    },
+    {
+      "id": "CHFJPY_OTC",
+      "title": "CHF/JPY OTC",
+      "group": "otc",
+      "profitability": 85,
+      "allowed_durations": [
+        5,
+        15,
+        30,
+        45
+      ],
+      "locked": false,
+      "locked_trading": false
+    },
+    {
+      "id": "EURAUD_OTC",
+      "title": "EUR/AUD OTC",
+      "group": "otc",
+      "profitability": 85,
+      "allowed_durations": [
+        5,
+        15,
+        30,
+        45
+      ],
+      "locked": false,
+      "locked_trading": false
+    },
+    {
+      "id": "EURCAD_OTC",
+      "title": "EUR/CAD OTC",
+      "group": "otc",
+      "profitability": 85,
+      "allowed_durations": [
+        5,
+        15,
+        30,
+        45
+      ],
+      "locked": false,
+      "locked_trading": false
+    },
+    {
+      "id": "EURCHF_OTC",
+      "title": "EUR/CHF OTC",
+      "group": "otc",
+      "profitability": 85,
+      "allowed_durations": [
+        5,
+        15,
+        30,
+        45
+      ],
+      "locked": false,
+      "locked_trading": false
+    },
+    {
+      "id": "EURGBP_OTC",
+      "title": "EUR/GBP OTC",
+      "group": "otc",
+      "profitability": 85,
+      "allowed_durations": [
+        5,
+        15,
+        30,
+        45
+      ],
+      "locked": false,
+      "locked_trading": false
+    },
+    {
+      "id": "EURJPY_OTC",
+      "title": "EUR/JPY OTC",
+      "group": "otc",
+      "profitability": 85,
+      "allowed_durations": [
+        5,
+        15,
+        30,
+        45
+      ],
+      "locked": false,
+      "locked_trading": false
+    },
+    {
+      "id": "EURNZD_OTC",
+      "title": "EUR/NZD OTC",
+      "group": "otc",
+      "profitability": 85,
+      "allowed_durations": [
+        5,
+        15,
+        30,
+        45
+      ],
+      "locked": false,
+      "locked_trading": false
+    },
+    {
+      "id": "GBPAUD_OTC",
+      "title": "GBP/AUD OTC",
+      "group": "otc",
+      "profitability": 85,
+      "allowed_durations": [
+        5,
+        15,
+        30,
+        45
+      ],
+      "locked": false,
+      "locked_trading": false
+    },
+    {
+      "id": "GBPCAD_OTC",
+      "title": "GBP/CAD OTC",
+      "group": "otc",
+      "profitability": 85,
+      "allowed_durations": [
+        5,
+        15,
+        30,
+        45
+      ],
+      "locked": false,
+      "locked_trading": false
+    },
+    {
+      "id": "GBPCHF_OTC",
+      "title": "GBP/CHF OTC",
+      "group": "otc",
+      "profitability": 85,
+      "allowed_durations": [
+        5,
+        15,
+        30,
+        45
+      ],
+      "locked": false,
+      "locked_trading": false
+    },
+    {
+      "id": "GBPJPY_OTC",
+      "title": "GBP/JPY OTC",
+      "group": "otc",
+      "profitability": 85,
+      "allowed_durations": [
+        5,
+        15,
+        30,
+        45
+      ],
+      "locked": false,
+      "locked_trading": false
+    },
+    {
+      "id": "GBPNZD_OTC",
+      "title": "GBP/NZD OTC",
+      "group": "otc",
+      "profitability": 85,
+      "allowed_durations": [
+        5,
+        15,
+        30,
+        45
+      ],
+      "locked": false,
+      "locked_trading": false
+    },
+    {
+      "id": "GBPUSD_OTC",
+      "title": "GBP/USD OTC",
+      "group": "otc",
+      "profitability": 85,
+      "allowed_durations": [
+        5,
+        15,
+        30,
+        45
+      ],
+      "locked": false,
+      "locked_trading": false
+    },
+    {
+      "id": "METAL_X",
+      "title": "Metal Composite Index",
+      "group": "composite",
+      "profitability": 85,
+      "allowed_durations": [
+        5,
+        15,
+        30,
+        45
+      ],
+      "locked": false,
+      "locked_trading": false
+    },
+    {
+      "id": "NZDCAD_OTC",
+      "title": "NZD/CAD OTC",
+      "group": "otc",
+      "profitability": 85,
+      "allowed_durations": [
+        5,
+        15,
+        30,
+        45
+      ],
+      "locked": false,
+      "locked_trading": false
+    },
+    {
+      "id": "NZDCHF_OTC",
+      "title": "NZD/CHF OTC",
+      "group": "otc",
+      "profitability": 85,
+      "allowed_durations": [
+        5,
+        15,
+        30,
+        45
+      ],
+      "locked": false,
+      "locked_trading": false
+    },
+    {
+      "id": "NZDJPY_OTC",
+      "title": "NZD/JPY OTC",
+      "group": "otc",
+      "profitability": 85,
+      "allowed_durations": [
+        5,
+        15,
+        30,
+        45
+      ],
+      "locked": false,
+      "locked_trading": false
+    },
+    {
+      "id": "OIL_X",
+      "title": "Oil Composite Index",
+      "group": "composite",
+      "profitability": 85,
+      "allowed_durations": [
+        5,
+        15,
+        30,
+        45
+      ],
+      "locked": false,
+      "locked_trading": false
+    },
+    {
+      "id": "STABLE_X",
+      "title": "Stable Tick Index",
+      "group": "stable",
+      "profitability": 85,
+      "allowed_durations": [
+        5,
+        15,
+        30,
+        45
+      ],
+      "locked": false,
+      "locked_trading": false
+    },
+    {
+      "id": "ULTRA_X",
+      "title": "Quickler",
+      "group": "composite",
+      "profitability": 85,
+      "allowed_durations": [
+        5
+      ],
+      "locked": false,
+      "locked_trading": false
+    },
+    {
+      "id": "USDCAD_OTC",
+      "title": "USD/CAD OTC",
+      "group": "otc",
+      "profitability": 85,
+      "allowed_durations": [
+        5,
+        15,
+        30,
+        45
+      ],
+      "locked": false,
+      "locked_trading": false
+    }
+  ]
+}
